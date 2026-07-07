@@ -58,7 +58,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     'ลำดับ',
     'รหัส',
     'ชื่อ-สกุล',
-    'ชั้นเรียน',
+    'Section',
     ...courseworkComponents.map((component) => `${component.name} /${component.max_score}`),
     attendanceComponent ? `${attendanceComponent.name} /${attendanceComponent.max_score}` : 'Attendance',
     midtermComponent ? `${midtermComponent.name} /${midtermComponent.max_score}` : 'Midterm',

@@ -51,7 +51,7 @@ export function GradeSummaryTable({ course, rows }: { course: Course; rows: Grad
       />
       <div className="mb-4 max-w-48">
         <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
-          <option value="all">ทุกชั้นเรียน</option>
+          <option value="all">ทุก Section</option>
           {STUDENT_CLASS_LEVELS.map((level) => (
             <option key={level} value={level}>
               {level}
@@ -61,14 +61,14 @@ export function GradeSummaryTable({ course, rows }: { course: Course; rows: Grad
       </div>
       {message && <div className="mb-3 rounded-xl bg-primary-soft px-4 py-3 text-sm text-primary-deep">{message}</div>}
       {filteredRows.length === 0 ? (
-        <EmptyState title="ยังไม่มีนักศึกษา" description="เพิ่มนักศึกษา active ก่อนดูสรุปเกรด หรือเลือกชั้นเรียนอื่น" />
+        <EmptyState title="ยังไม่มีนักศึกษา" description="เพิ่มนักศึกษา active ก่อนดูสรุปเกรด หรือเลือก Section อื่น" />
       ) : (
         <Table>
           <TableHead>
             <tr>
               <TableTh>รหัส</TableTh>
               <TableTh>ชื่อ-สกุล</TableTh>
-              <TableTh>ชั้นเรียน</TableTh>
+              <TableTh>Section</TableTh>
               <TableTh>Coursework</TableTh>
               <TableTh>Attendance</TableTh>
               <TableTh>Midterm</TableTh>

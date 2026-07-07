@@ -34,7 +34,7 @@ create table if not exists students (
   id uuid primary key default gen_random_uuid(),
   student_code text unique not null,
   full_name text not null,
-  class_level text not null default 'ชั้น 1',
+  class_level text not null default 'Section 6',
   phone text,
   email text,
   status text not null default 'active' check (status in ('active','inactive')),

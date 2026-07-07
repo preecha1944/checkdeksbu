@@ -52,7 +52,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   sheet.addRow([`${session.title} | ${formatThaiDateOnly(session.learning_date)}`]);
   sheet.mergeCells(1, 1, 1, 11);
   sheet.getRow(1).font = { bold: true, size: 14 };
-  sheet.addRow(['ลำดับ', 'รหัส', 'ชื่อ-สกุล', 'ชั้นเรียน', 'ห้อง', 'เวลา Check-in', 'เวลา Check-out', 'สาย(นาที)', 'ระยะเวลา(นาที)', 'สถานะ', 'หมายเหตุ']);
+  sheet.addRow(['ลำดับ', 'รหัส', 'ชื่อ-สกุล', 'Section', 'ห้อง', 'เวลา Check-in', 'เวลา Check-out', 'สาย(นาที)', 'ระยะเวลา(นาที)', 'สถานะ', 'หมายเหตุ']);
   styleHeader(sheet.getRow(2));
 
   students.forEach((student, index) => {

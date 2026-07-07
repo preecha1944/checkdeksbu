@@ -62,7 +62,7 @@ export function StudentsTable({ students, isViewer }: StudentsTableProps) {
           />
         </div>
         <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
-          <option value="all">ทุกชั้นเรียน</option>
+          <option value="all">ทุก Section</option>
           {STUDENT_CLASS_LEVELS.map((level) => (
             <option key={level} value={level}>
               {level}
@@ -83,7 +83,7 @@ export function StudentsTable({ students, isViewer }: StudentsTableProps) {
             <tr>
               <TableTh>รหัส</TableTh>
               <TableTh>ชื่อ-สกุล</TableTh>
-              <TableTh>ชั้นเรียน</TableTh>
+              <TableTh>Section</TableTh>
               <TableTh>เบอร์โทร</TableTh>
               <TableTh>อีเมล</TableTh>
               <TableTh>สถานะ</TableTh>

@@ -162,7 +162,7 @@ export function ScoreEntryTable({
 
       <div className="mb-4 max-w-48">
         <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
-          <option value="all">ทุกชั้นเรียน</option>
+          <option value="all">ทุก Section</option>
           {STUDENT_CLASS_LEVELS.map((level) => (
             <option key={level} value={level}>
               {level}
@@ -174,7 +174,7 @@ export function ScoreEntryTable({
       {message && <div className="mb-4 rounded-xl bg-primary-soft px-4 py-3 text-sm text-primary-deep">{message}</div>}
 
       {filteredStudents.length === 0 ? (
-        <EmptyState title="ยังไม่มีนักศึกษา" description="เพิ่มนักศึกษา active ก่อนเริ่มกรอกคะแนน หรือเลือกชั้นเรียนอื่น" />
+        <EmptyState title="ยังไม่มีนักศึกษา" description="เพิ่มนักศึกษา active ก่อนเริ่มกรอกคะแนน หรือเลือก Section อื่น" />
       ) : orderedComponents.length === 0 ? (
         <EmptyState title="ยังไม่มีช่องคะแนน" description="สร้างรายวิชาใหม่หรือไปตั้งค่างานย่อยก่อน" />
       ) : (
@@ -184,7 +184,7 @@ export function ScoreEntryTable({
               <tr>
                 <th className="sticky left-0 z-10 bg-neutral-soft px-3 py-3 text-left font-medium">รหัส</th>
                 <th className="sticky left-[96px] z-10 bg-neutral-soft px-3 py-3 text-left font-medium">ชื่อ-สกุล</th>
-                <th className="min-w-24 px-3 py-3 text-left font-medium">ชั้นเรียน</th>
+                <th className="min-w-24 px-3 py-3 text-left font-medium">Section</th>
                 {orderedComponents.map((component) => (
                   <th key={component.id} className="min-w-32 px-3 py-3 text-right font-medium">
                     {component.name} /{component.max_score}

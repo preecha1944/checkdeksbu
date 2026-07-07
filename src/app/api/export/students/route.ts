@@ -22,7 +22,7 @@ export async function GET() {
   const workbook = createWorkbook();
   const sheet = workbook.addWorksheet('Students');
 
-  sheet.addRow(['ลำดับ', 'รหัสนักศึกษา', 'ชื่อ-สกุล', 'ชั้นเรียน', 'เบอร์โทร', 'อีเมล', 'สถานะ']);
+  sheet.addRow(['ลำดับ', 'รหัสนักศึกษา', 'ชื่อ-สกุล', 'Section', 'เบอร์โทร', 'อีเมล', 'สถานะ']);
   styleHeader(sheet.getRow(1));
 
   students.forEach((student, index) => {

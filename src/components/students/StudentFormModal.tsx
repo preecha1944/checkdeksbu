@@ -96,7 +96,7 @@ export function StudentFormModal({ open, onClose, student }: StudentFormModalPro
           />
         </Field>
 
-        <Field label="ชั้นเรียน" htmlFor="class_level" required>
+        <Field label="Section" htmlFor="class_level" required>
           <Select
             id="class_level"
             required

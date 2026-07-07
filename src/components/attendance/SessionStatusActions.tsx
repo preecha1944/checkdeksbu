@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { QrCode, PlayCircle, StopCircle, Download } from 'lucide-react';
@@ -18,9 +18,14 @@ export interface SessionStatusActionsProps {
 
 export function SessionStatusActions({ sessionId, sessionTitle, status, isViewer }: SessionStatusActionsProps) {
   const router = useRouter();
+  const [currentStatus, setCurrentStatus] = useState(status);
   const [confirmClose, setConfirmClose] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCurrentStatus(status);
+  }, [status]);
 
   async function updateStatus(next: 'open' | 'closed') {
     setLoading(true);
@@ -39,6 +44,7 @@ export function SessionStatusActions({ sessionId, sessionTitle, status, isViewer
     }
 
     setConfirmClose(false);
+    setCurrentStatus(next);
     router.refresh();
   }
 
@@ -48,14 +54,14 @@ export function SessionStatusActions({ sessionId, sessionTitle, status, isViewer
     <div className="flex flex-wrap items-center gap-3">
       {error && <p className="text-sm text-danger">{error}</p>}
 
-      {status === 'draft' && (
+      {currentStatus === 'draft' && (
         <Button onClick={() => updateStatus('open')} loading={loading}>
           <PlayCircle className="h-4 w-4" aria-hidden="true" />
           เปิดรอบเช็คชื่อ
         </Button>
       )}
 
-      {status === 'open' && (
+      {currentStatus === 'open' && (
         <>
           <Link href={`/sessions/${sessionId}/qr`} target="_blank">
             <Button variant="secondary">
@@ -70,7 +76,7 @@ export function SessionStatusActions({ sessionId, sessionTitle, status, isViewer
         </>
       )}
 
-      {status === 'closed' && (
+      {currentStatus === 'closed' && (
         <a href={`/api/export/sessions/${sessionId}`}>
           <Button variant="secondary">
             <Download className="h-4 w-4" aria-hidden="true" />

@@ -56,16 +56,20 @@ create table if not exists rooms (
 -- ========== CLASS SESSIONS (รอบเรียน) ==========
 create table if not exists class_sessions (
   id uuid primary key default gen_random_uuid(),
+  course_id uuid,                    -- ผูกกับรายวิชา (เพิ่ม FK หลัง courses ถูกสร้าง — ท้าย section courses)
   title text not null,
   learning_date date not null,
   start_time time not null,
   end_time time not null,
   late_after_time time not null,
+  early_leave_minutes int not null default 30,  -- ออกก่อนเลิกเรียนเกิน n นาที = early_leave (ตั้งต่อรอบได้)
   status text not null default 'draft' check (status in ('draft','open','closed','cancelled')),
   created_by uuid references profiles(id),
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+create index if not exists idx_sessions_status on class_sessions(status);
+create index if not exists idx_sessions_date on class_sessions(learning_date);
 
 -- ========== SESSION ROOMS ==========
 create table if not exists session_rooms (
@@ -121,6 +125,15 @@ create table if not exists courses (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+-- ผูก class_sessions.course_id → courses(id) (เพิ่มหลัง courses ถูกสร้าง, guard กันรันซ้ำ error)
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'fk_sessions_course') then
+    alter table class_sessions
+      add constraint fk_sessions_course foreign key (course_id) references courses(id) on delete set null;
+  end if;
+end $$;
+create index if not exists idx_sessions_course on class_sessions(course_id);
 
 -- ========== SCORE CATEGORIES (4 หมวดหลัก) ==========
 create table if not exists score_categories (

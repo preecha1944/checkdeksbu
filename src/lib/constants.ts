@@ -22,5 +22,5 @@ export const SPECIAL_STATUSES = ['D', 'F', 'W', 'NC', 'I', 'S', 'U', 'IP', 'AC',
 
 export const QR_ROTATE_SECONDS = 180; // QR เปลี่ยนทุก 3 นาที (requirement จากผู้ใช้)
 export const QR_GRACE_SECONDS = 30; // ผ่อนผันสแกนตอน QR กำลังเปลี่ยน
-export const EARLY_LEAVE_MINUTES = 30; // ออกก่อนเวลาเลิกเรียนเกิน 30 นาที = early_leave
+export const EARLY_LEAVE_MINUTES = 30; // ค่า default เท่านั้น — ค่าจริงอ่านจาก class_sessions.early_leave_minutes ต่อรอบ (ใช้ค่านี้เป็น default ตอนสร้างรอบ)
 export const TZ_OFFSET = '+07:00'; // Asia/Bangkok

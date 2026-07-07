@@ -64,11 +64,13 @@ export interface Room {
 
 export interface ClassSession {
   id: string;
+  course_id: string | null;
   title: string;
   learning_date: string; // date (YYYY-MM-DD)
   start_time: string; // time (HH:mm:ss)
   end_time: string;
   late_after_time: string;
+  early_leave_minutes: number;
   status: SessionStatus;
   created_by: string | null;
   created_at: string;
@@ -175,23 +177,35 @@ export interface FinalGrade {
   updated_at: string;
 }
 
-// โครงสร้างฐานข้อมูลรวม (สำหรับใช้กับ SupabaseClient<Database> ในอนาคตถ้าต้องการ)
+// โครงสร้างฐานข้อมูลสำหรับ SupabaseClient<Database>
+// Insert/Update ตั้งใจให้หลวม (Partial<Row>) เพราะ validation จริงทำที่ชั้น API route ทั้งหมดอยู่แล้ว
+// การกำหนด field แบบเข้มงวดต่อ table ที่นี่ไม่คุ้มกับเวลาพัฒนา ไม่ใช่จุดที่ป้องกัน bug จริง
+//
+// หมายเหตุสำคัญ: @supabase/postgrest-js เวอร์ชันใหม่ (select-query-parser) ต้องการให้ทุก table
+// มี field `Relationships: GenericRelationship[]` เสมอ — ถ้าไม่มี แม้แต่ .select('col').maybeSingle()
+// แบบไม่มี embed เลยก็จะ infer type เป็น never (ไม่ใช่แค่ตอน embed join เท่านั้น)
+// ตั้งใจใส่เป็น [] (ไม่ระบุ FK จริง) แทนการระบุ FK ครบทุกตาราง เพราะทดลองแล้วพบว่า tuple ของ
+// relationship ที่ซับซ้อน (หลาย FK ต่อ table) ทำให้ TS infer พัง .insert() กลายเป็น never ไปด้วย —
+// [] ก็เพียงพอแก้ปัญหา select แบบไม่ embed แล้ว ส่วน query ที่ embed join (เช่น .select('*, rooms(...)'))
+// ให้ใช้ .returns<T>() ระบุ shape เอง (มีใช้อยู่แล้วหลายจุดในโค้ด)
+type Writable<Row> = { Row: Row; Insert: Partial<Row>; Update: Partial<Row>; Relationships: [] };
+
 export interface Database {
   public: {
     Tables: {
-      profiles: { Row: Profile };
-      students: { Row: Student };
-      rooms: { Row: Room };
-      class_sessions: { Row: ClassSession };
-      session_rooms: { Row: SessionRoom };
-      attendance_records: { Row: AttendanceRecord };
-      qr_tokens: { Row: QrToken };
-      courses: { Row: Course };
-      score_categories: { Row: ScoreCategory };
-      score_components: { Row: ScoreComponent };
-      student_scores: { Row: StudentScore };
-      grade_scales: { Row: GradeScale };
-      final_grades: { Row: FinalGrade };
+      profiles: Writable<Profile>;
+      students: Writable<Student>;
+      rooms: Writable<Room>;
+      class_sessions: Writable<ClassSession>;
+      session_rooms: Writable<SessionRoom>;
+      attendance_records: Writable<AttendanceRecord>;
+      qr_tokens: Writable<QrToken>;
+      courses: Writable<Course>;
+      score_categories: Writable<ScoreCategory>;
+      score_components: Writable<ScoreComponent>;
+      student_scores: Writable<StudentScore>;
+      grade_scales: Writable<GradeScale>;
+      final_grades: Writable<FinalGrade>;
     };
   };
 }

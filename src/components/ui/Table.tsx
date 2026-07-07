@@ -3,7 +3,7 @@ import { cn } from '@/lib/cn';
 
 export function Table({ className, children, ...props }: HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-border-soft">
+    <div className="overflow-x-auto rounded-xl border border-border-soft bg-white">
       <table className={cn('w-full border-collapse text-sm', className)} {...props}>
         {children}
       </table>
@@ -13,7 +13,7 @@ export function Table({ className, children, ...props }: HTMLAttributes<HTMLTabl
 
 export function TableHead({ className, children, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
   return (
-    <thead className={cn('bg-neutral-soft text-xs uppercase text-ink-muted', className)} {...props}>
+    <thead className={cn('bg-primary-soft/45 text-xs uppercase text-primary-deep', className)} {...props}>
       {children}
     </thead>
   );
@@ -40,7 +40,7 @@ export function TableRow({ className, children, ...props }: HTMLAttributes<HTMLT
 
 export function TableTh({ className, children, ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <th className={cn('px-4 py-3 text-left font-medium', className)} {...props}>
+    <th className={cn('px-4 py-3 text-left font-semibold whitespace-nowrap', className)} {...props}>
       {children}
     </th>
   );
@@ -48,7 +48,7 @@ export function TableTh({ className, children, ...props }: ThHTMLAttributes<HTML
 
 export function TableTd({ className, children, ...props }: TdHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <td className={cn('px-4 py-3 text-ink', className)} {...props}>
+    <td className={cn('px-4 py-3 text-ink align-middle', className)} {...props}>
       {children}
     </td>
   );

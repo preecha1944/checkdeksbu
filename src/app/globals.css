@@ -1,15 +1,15 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #7c3aed; /* violet-600 หลัก */
-  --color-primary-dark: #6d28d9; /* header แถบม่วงเข้ม */
-  --color-primary-deep: #5b21b6;
-  --color-primary-soft: #ede9fe; /* พื้นหลัง icon/chip ม่วงอ่อน */
-  --color-app-bg: #f4f2fb; /* พื้นหลังหน้า */
+  --color-primary: #6d28d9;
+  --color-primary-dark: #4c1d95;
+  --color-primary-deep: #3b0764;
+  --color-primary-soft: #f0e7ff;
+  --color-app-bg: #f7f4ff;
   --color-card: #ffffff;
-  --color-border-soft: #e9e4f5;
-  --color-ink: #1e1b2e; /* ข้อความหลัก */
-  --color-ink-muted: #6b6880; /* ข้อความรอง */
+  --color-border-soft: #e8ddf8;
+  --color-ink: #211532;
+  --color-ink-muted: #6b607e;
   --color-success: #16a34a;
   --color-success-soft: #dcfce7;
   --color-warning: #d97706;
@@ -18,7 +18,7 @@
   --color-danger-soft: #fee2e2;
   --color-info: #2563eb;
   --color-info-soft: #dbeafe;
-  --color-neutral-soft: #f1f5f9;
+  --color-neutral-soft: #f5f3ff;
   --font-heading: var(--font-prompt);
   --font-body: var(--font-noto-thai);
   --radius-card: 1rem;
@@ -30,5 +30,19 @@
 
 html,
 body {
-  height: 100%;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(124, 58, 237, 0.08), transparent 28rem),
+    linear-gradient(180deg, #fbfaff 0%, var(--color-app-bg) 100%);
+  color: var(--color-ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+::selection {
+  background: #ddd0ff;
+  color: var(--color-primary-deep);
 }

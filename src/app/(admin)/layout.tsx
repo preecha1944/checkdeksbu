@@ -14,11 +14,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const role = sessionUser.profile?.role ?? 'teacher';
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-app-bg text-ink">
       <Sidebar fullName={fullName} role={role} />
       <div className="flex min-h-screen flex-1 flex-col">
         <Topbar fullName={fullName} />
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">{children}</main>
       </div>
     </div>
   );

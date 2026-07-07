@@ -97,7 +97,7 @@ export function StudentFormModal({ open, onClose, student }: StudentFormModalPro
             <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
           </Field>
           <Field label="อีเมล" htmlFor="email">
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input id="email" type="text" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </Field>
         </div>
 

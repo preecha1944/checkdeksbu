@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { jsonError, requireAuth } from '@/lib/api-helpers';
+import { normalizeOptionalStudentField } from '@/lib/student-input';
 
 // POST /api/students — เพิ่มนักศึกษา 1 คน (§8.2)
 export async function POST(request: Request) {
@@ -16,8 +17,8 @@ export async function POST(request: Request) {
 
   const studentCode = typeof body.student_code === 'string' ? body.student_code.trim() : '';
   const fullName = typeof body.full_name === 'string' ? body.full_name.trim() : '';
-  const phone = typeof body.phone === 'string' ? body.phone.trim() || null : null;
-  const email = typeof body.email === 'string' ? body.email.trim() || null : null;
+  const phone = normalizeOptionalStudentField(body.phone);
+  const email = normalizeOptionalStudentField(body.email);
   const status = body.status === 'inactive' ? 'inactive' : 'active';
 
   if (!studentCode) return jsonError('กรุณากรอกรหัสนักศึกษา');

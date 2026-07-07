@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { jsonError, requireAuth } from '@/lib/api-helpers';
+import { normalizeOptionalStudentField } from '@/lib/student-input';
 
 interface ParsedRow {
   lineNumber: number;
@@ -27,8 +28,8 @@ function parseLine(line: string, lineNumber: number): ParsedRow | { lineNumber: 
     lineNumber,
     studentCode,
     fullName,
-    phone: phone || null,
-    email: email || null,
+    phone: normalizeOptionalStudentField(phone),
+    email: normalizeOptionalStudentField(email),
   };
 }
 

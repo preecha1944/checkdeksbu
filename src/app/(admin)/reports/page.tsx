@@ -12,7 +12,7 @@ import type { AttendanceFinalStatus, ClassSession, Course, Student } from '@/typ
 const COMPLETE_STATUSES: AttendanceFinalStatus[] = ['present', 'late', 'early_leave'];
 
 interface TrackingRow {
-  student: Student;
+  student: Pick<Student, 'id' | 'student_code' | 'full_name'>;
   absent: number;
   late: number;
   percent: number;
@@ -32,22 +32,22 @@ export default async function ReportsPage() {
 
   const { data: studentsRaw } = await supabase
     .from('students')
-    .select('*')
+    .select('id, student_code, full_name')
     .eq('status', 'active')
     .order('student_code', { ascending: true });
   const { data: sessionsRaw } = await supabase
     .from('class_sessions')
-    .select('*')
+    .select('id, title, learning_date, status')
     .order('learning_date', { ascending: false })
     .order('start_time', { ascending: false });
   const { data: coursesRaw } = await supabase
     .from('courses')
-    .select('*')
+    .select('id, course_code, course_name')
     .order('created_at', { ascending: false });
 
-  const students = (studentsRaw ?? []) as unknown as Student[];
-  const sessions = (sessionsRaw ?? []) as unknown as ClassSession[];
-  const courses = (coursesRaw ?? []) as unknown as Course[];
+  const students = (studentsRaw ?? []) as unknown as Pick<Student, 'id' | 'student_code' | 'full_name'>[];
+  const sessions = (sessionsRaw ?? []) as unknown as Pick<ClassSession, 'id' | 'title' | 'learning_date' | 'status'>[];
+  const courses = (coursesRaw ?? []) as unknown as Pick<Course, 'id' | 'course_code' | 'course_name'>[];
   const closedSessions = sessions.filter((session) => session.status === 'closed');
   const closedSessionIds = closedSessions.map((session) => session.id);
 

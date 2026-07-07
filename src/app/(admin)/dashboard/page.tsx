@@ -7,8 +7,9 @@ import { Card, CardHeader } from '@/components/ui/Card';
 import { Table, TableBody, TableHead, TableRow, TableTd, TableTh } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { AttendanceTrendChart, type AttendanceTrendPoint } from '@/components/dashboard/AttendanceTrendChart';
-import { RoomDistributionChart, type RoomDistributionPoint } from '@/components/dashboard/RoomDistributionChart';
+import type { AttendanceTrendPoint } from '@/components/dashboard/AttendanceTrendChart';
+import type { RoomDistributionPoint } from '@/components/dashboard/RoomDistributionChart';
+import { LazyAttendanceTrendChart, LazyRoomDistributionChart } from '@/components/dashboard/LazyDashboardCharts';
 import { createServiceClient } from '@/lib/supabase/server';
 import { attendanceStatusLabel, attendanceStatusTone } from '@/lib/status';
 import { formatThaiDateOnly, formatTime } from '@/lib/time';
@@ -191,14 +192,14 @@ export default async function DashboardPage() {
                 title="แนวโน้มการเข้าเรียน"
                 description="อัตราเข้าเรียนของ 7 รอบล่าสุดที่ปิดแล้ว"
               />
-              <AttendanceTrendChart data={trendData} />
+              <LazyAttendanceTrendChart data={trendData} />
             </Card>
             <Card>
               <CardHeader
                 title="สัดส่วนตามห้อง"
                 description={latestSession ? `${latestSession.title} (${formatThaiDateOnly(latestSession.learning_date)})` : 'รอบเรียนล่าสุด'}
               />
-              <RoomDistributionChart data={roomDistribution} />
+              <LazyRoomDistributionChart data={roomDistribution} />
             </Card>
           </div>
 

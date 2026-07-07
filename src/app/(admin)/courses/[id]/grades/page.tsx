@@ -17,16 +17,42 @@ export default async function CourseGradesPage({ params }: { params: Promise<{ i
   const supabase = createServiceClient();
   const sessionUser = await getSessionUser();
 
-  const { data: courseRaw } = await supabase.from('courses').select('*').eq('id', id).maybeSingle();
+  const { data: courseRaw } = await supabase
+    .from('courses')
+    .select('id, course_name, is_locked, locked_at')
+    .eq('id', id)
+    .maybeSingle();
   const course = courseRaw as unknown as Course | null;
   if (!course) notFound();
 
-  const { data: studentsRaw } = await supabase.from('students').select('*').eq('status', 'active').order('student_code');
-  const { data: categoriesRaw } = await supabase.from('score_categories').select('*').eq('course_id', id).order('sort_order');
-  const { data: componentsRaw } = await supabase.from('score_components').select('*').eq('course_id', id).order('sort_order');
-  const { data: scoresRaw } = await supabase.from('student_scores').select('*').eq('course_id', id);
-  const { data: scalesRaw } = await supabase.from('grade_scales').select('*').eq('course_id', id).order('min_score', { ascending: false });
-  const { data: finalRaw } = await supabase.from('final_grades').select('*').eq('course_id', id);
+  const { data: studentsRaw } = await supabase
+    .from('students')
+    .select('id, student_code, full_name, class_level')
+    .eq('status', 'active')
+    .order('student_code');
+  const { data: categoriesRaw } = await supabase
+    .from('score_categories')
+    .select('id, kind')
+    .eq('course_id', id)
+    .order('sort_order');
+  const { data: componentsRaw } = await supabase
+    .from('score_components')
+    .select('id, category_id, name, max_score, sort_order, created_at')
+    .eq('course_id', id)
+    .order('sort_order');
+  const { data: scoresRaw } = await supabase
+    .from('student_scores')
+    .select('student_id, score_component_id, score')
+    .eq('course_id', id);
+  const { data: scalesRaw } = await supabase
+    .from('grade_scales')
+    .select('grade, min_score, max_score')
+    .eq('course_id', id)
+    .order('min_score', { ascending: false });
+  const { data: finalRaw } = await supabase
+    .from('final_grades')
+    .select('student_id, special_status, remark')
+    .eq('course_id', id);
 
   const finalGrades = (finalRaw ?? []) as unknown as FinalGrade[];
   const meta = new Map(finalGrades.map((row) => [row.student_id, { special_status: row.special_status, remark: row.remark }]));

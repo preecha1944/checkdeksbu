@@ -6,12 +6,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   BookOpen,
   CalendarClock,
+  ClipboardCheck,
   FileBarChart,
   GraduationCap,
   LayoutDashboard,
   LogOut,
   Menu,
   PenLine,
+  Settings,
   Settings2,
   Users,
   X,
@@ -21,12 +23,14 @@ import { createBrowserSupabaseClient } from '@/lib/supabase/client';
 
 export const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, match: ['/dashboard'] },
+  { href: '/attendance', label: 'Attendance', icon: ClipboardCheck, match: ['/attendance'] },
   { href: '/sessions', label: 'Sessions', icon: CalendarClock, match: ['/sessions'] },
   { href: '/students', label: 'Students', icon: Users, match: ['/students'] },
   { href: '/courses', label: 'Score Setup', icon: Settings2, match: ['/courses', '/setup'] },
   { href: '/courses', label: 'Score Entry', icon: PenLine, match: ['/entry'] },
   { href: '/courses', label: 'Grade Summary', icon: BookOpen, match: ['/grades'] },
   { href: '/reports', label: 'Reports', icon: FileBarChart, match: ['/reports'] },
+  { href: '/settings', label: 'Settings', icon: Settings, match: ['/settings'] },
 ];
 
 export function isNavItemActive(pathname: string | null, item: (typeof NAV_ITEMS)[number]) {

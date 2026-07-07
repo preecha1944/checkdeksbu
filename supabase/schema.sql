@@ -34,6 +34,7 @@ create table if not exists students (
   id uuid primary key default gen_random_uuid(),
   student_code text unique not null,
   full_name text not null,
+  class_level text not null default 'ชั้น 1',
   phone text,
   email text,
   status text not null default 'active' check (status in ('active','inactive')),
@@ -41,6 +42,7 @@ create table if not exists students (
   updated_at timestamptz default now()
 );
 create index if not exists idx_students_code on students(student_code);
+create index if not exists idx_students_class_level on students(class_level);
 
 -- ========== ROOMS ==========
 create table if not exists rooms (

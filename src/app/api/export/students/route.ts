@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { jsonError, requireAuth } from '@/lib/api-helpers';
 import { createWorkbook, autosizeColumns, styleHeader, todayStamp, workbookResponse } from '@/lib/excel';
 import { STUDENT_STATUS_MAP } from '@/lib/status';
+import { DEFAULT_STUDENT_CLASS_LEVEL } from '@/lib/student-input';
 import type { Student } from '@/types/db';
 
 export async function GET() {
@@ -21,7 +22,7 @@ export async function GET() {
   const workbook = createWorkbook();
   const sheet = workbook.addWorksheet('Students');
 
-  sheet.addRow(['ลำดับ', 'รหัสนักศึกษา', 'ชื่อ-สกุล', 'เบอร์โทร', 'อีเมล', 'สถานะ']);
+  sheet.addRow(['ลำดับ', 'รหัสนักศึกษา', 'ชื่อ-สกุล', 'ชั้นเรียน', 'เบอร์โทร', 'อีเมล', 'สถานะ']);
   styleHeader(sheet.getRow(1));
 
   students.forEach((student, index) => {
@@ -29,6 +30,7 @@ export async function GET() {
       index + 1,
       student.student_code,
       student.full_name,
+      student.class_level ?? DEFAULT_STUDENT_CLASS_LEVEL,
       student.phone ?? '',
       student.email ?? '',
       STUDENT_STATUS_MAP[student.status]?.label ?? student.status,

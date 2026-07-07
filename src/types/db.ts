@@ -45,6 +45,7 @@ export interface Student {
   id: string;
   student_code: string;
   full_name: string;
+  class_level: string;
   phone: string | null;
   email: string | null;
   status: StudentStatus;

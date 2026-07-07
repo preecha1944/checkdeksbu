@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Select } from '@/components/ui/Select';
 import { calculateTotalsForStudent } from '@/lib/grades';
+import { DEFAULT_STUDENT_CLASS_LEVEL, STUDENT_CLASS_LEVELS } from '@/lib/student-input';
 import type { Course, GradeScale, ScoreCategory, ScoreComponent, Student, StudentScore } from '@/types/db';
 
 function keyOf(studentId: string, componentId: string) {
@@ -40,6 +42,7 @@ export function ScoreEntryTable({
   const [dirty, setDirty] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [classFilter, setClassFilter] = useState('all');
 
   const orderedComponents = useMemo(() => {
     const categoryOrder = new Map(categories.map((category) => [category.id, category.sort_order]));
@@ -48,6 +51,12 @@ export function ScoreEntryTable({
       return order || a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at);
     });
   }, [categories, components]);
+
+  const filteredStudents = useMemo(
+    () =>
+      students.filter((student) => classFilter === 'all' || (student.class_level ?? DEFAULT_STUDENT_CLASS_LEVEL) === classFilter),
+    [students, classFilter]
+  );
 
   useEffect(() => {
     function beforeUnload(event: BeforeUnloadEvent) {
@@ -83,7 +92,7 @@ export function ScoreEntryTable({
 
   async function saveScores() {
     const payload = [];
-    for (const student of students) {
+    for (const student of filteredStudents) {
       for (const component of orderedComponents) {
         if (isInvalid(student.id, component)) {
           setMessage(`คะแนน ${component.name} ต้องอยู่ระหว่าง 0 ถึง ${component.max_score}`);
@@ -151,10 +160,21 @@ export function ScoreEntryTable({
         }
       />
 
+      <div className="mb-4 max-w-48">
+        <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
+          <option value="all">ทุกชั้นเรียน</option>
+          {STUDENT_CLASS_LEVELS.map((level) => (
+            <option key={level} value={level}>
+              {level}
+            </option>
+          ))}
+        </Select>
+      </div>
+
       {message && <div className="mb-4 rounded-xl bg-primary-soft px-4 py-3 text-sm text-primary-deep">{message}</div>}
 
-      {students.length === 0 ? (
-        <EmptyState title="ยังไม่มีนักศึกษา" description="เพิ่มนักศึกษา active ก่อนเริ่มกรอกคะแนน" />
+      {filteredStudents.length === 0 ? (
+        <EmptyState title="ยังไม่มีนักศึกษา" description="เพิ่มนักศึกษา active ก่อนเริ่มกรอกคะแนน หรือเลือกชั้นเรียนอื่น" />
       ) : orderedComponents.length === 0 ? (
         <EmptyState title="ยังไม่มีช่องคะแนน" description="สร้างรายวิชาใหม่หรือไปตั้งค่างานย่อยก่อน" />
       ) : (
@@ -164,6 +184,7 @@ export function ScoreEntryTable({
               <tr>
                 <th className="sticky left-0 z-10 bg-neutral-soft px-3 py-3 text-left font-medium">รหัส</th>
                 <th className="sticky left-[96px] z-10 bg-neutral-soft px-3 py-3 text-left font-medium">ชื่อ-สกุล</th>
+                <th className="min-w-24 px-3 py-3 text-left font-medium">ชั้นเรียน</th>
                 {orderedComponents.map((component) => (
                   <th key={component.id} className="min-w-32 px-3 py-3 text-right font-medium">
                     {component.name} /{component.max_score}
@@ -174,7 +195,7 @@ export function ScoreEntryTable({
               </tr>
             </thead>
             <tbody>
-              {students.map((student) => {
+              {filteredStudents.map((student) => {
                 const totals = calculateTotalsForStudent({
                   studentId: student.id,
                   categories,
@@ -186,6 +207,9 @@ export function ScoreEntryTable({
                   <tr key={student.id} className="border-b border-border-soft last:border-0 hover:bg-primary-soft/30">
                     <td className="sticky left-0 z-10 bg-card px-3 py-2 font-medium text-ink">{student.student_code}</td>
                     <td className="sticky left-[96px] z-10 min-w-56 bg-card px-3 py-2 text-ink">{student.full_name}</td>
+                    <td className="px-3 py-2">
+                      <Badge tone="primary">{student.class_level ?? DEFAULT_STUDENT_CLASS_LEVEL}</Badge>
+                    </td>
                     {orderedComponents.map((component) => {
                       const key = keyOf(student.id, component.id);
                       const invalid = isInvalid(student.id, component);

@@ -58,7 +58,7 @@ export function BulkPasteModal({ open, onClose }: BulkPasteModalProps) {
         <div>
           <Label htmlFor="bulkText">วางข้อมูลจาก Excel</Label>
           <p className="mb-2 text-xs text-ink-muted">
-            คอลัมน์: รหัส [Tab] ชื่อ-สกุล [Tab] เบอร์โทร [Tab] อีเมล — บรรทัดละ 1 คน (คัดลอกจาก Excel มาวางได้เลย)
+            คอลัมน์: รหัส [Tab] ชื่อ-สกุล [Tab] ชั้นเรียน [Tab] เบอร์โทร [Tab] อีเมล — ถ้าไม่มีชั้นเรียนจะใช้ ชั้น 1
           </p>
           <textarea
             id="bulkText"
@@ -66,7 +66,7 @@ export function BulkPasteModal({ open, onClose }: BulkPasteModalProps) {
             value={text}
             onChange={(e) => setText(e.target.value)}
             className="w-full rounded-xl border border-border-soft bg-white p-3 font-mono text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            placeholder={'66123456789\tนายสมชาย ใจดี\t0812345678\tsomchai@example.com'}
+            placeholder={'66123456789\tนายสมชาย ใจดี\tชั้น 1\t0812345678\tsomchai@example.com'}
           />
         </div>
 

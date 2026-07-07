@@ -6,6 +6,7 @@ import { Card, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { CreateCourseButton } from '@/components/courses/CreateCourseButton';
+import { EditCourseButton } from '@/components/courses/EditCourseButton';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getSessionUser } from '@/lib/supabase/auth';
 import type { Course } from '@/types/db';
@@ -98,6 +99,7 @@ export default async function CoursesPage() {
                     Summary
                   </Button>
                 </Link>
+                {!isViewer && <EditCourseButton course={course} />}
               </div>
             </Card>
           ))}

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { jsonError, requireAuth } from '@/lib/api-helpers';
-import { normalizeOptionalStudentField } from '@/lib/student-input';
+import { normalizeOptionalStudentField, normalizeStudentClassLevel } from '@/lib/student-input';
 
 // PATCH /api/students/[id] — แก้ไขนักศึกษา (§8.2)
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -27,6 +27,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (!name) return jsonError('กรุณากรอกชื่อ-สกุล');
     patch.full_name = name;
   }
+  if (body.class_level !== undefined) patch.class_level = normalizeStudentClassLevel(body.class_level);
   if (body.phone !== undefined) patch.phone = normalizeOptionalStudentField(body.phone);
   if (body.email !== undefined) patch.email = normalizeOptionalStudentField(body.email);
   if (body.status !== undefined) patch.status = body.status === 'inactive' ? 'inactive' : 'active';

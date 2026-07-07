@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { jsonError, requireAuth } from '@/lib/api-helpers';
 import { createWorkbook, autosizeColumns, styleHeader, todayStamp, workbookResponse } from '@/lib/excel';
 import { attendanceStatusLabel } from '@/lib/status';
+import { DEFAULT_STUDENT_CLASS_LEVEL } from '@/lib/student-input';
 import { formatThaiDateOnly, formatTime } from '@/lib/time';
 import type { AttendanceFinalStatus, AttendanceRecord, ClassSession, Student } from '@/types/db';
 
@@ -49,9 +50,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const workbook = createWorkbook();
   const sheet = workbook.addWorksheet('Session');
   sheet.addRow([`${session.title} | ${formatThaiDateOnly(session.learning_date)}`]);
-  sheet.mergeCells(1, 1, 1, 10);
+  sheet.mergeCells(1, 1, 1, 11);
   sheet.getRow(1).font = { bold: true, size: 14 };
-  sheet.addRow(['ลำดับ', 'รหัส', 'ชื่อ-สกุล', 'ห้อง', 'เวลา Check-in', 'เวลา Check-out', 'สาย(นาที)', 'ระยะเวลา(นาที)', 'สถานะ', 'หมายเหตุ']);
+  sheet.addRow(['ลำดับ', 'รหัส', 'ชื่อ-สกุล', 'ชั้นเรียน', 'ห้อง', 'เวลา Check-in', 'เวลา Check-out', 'สาย(นาที)', 'ระยะเวลา(นาที)', 'สถานะ', 'หมายเหตุ']);
   styleHeader(sheet.getRow(2));
 
   students.forEach((student, index) => {
@@ -61,6 +62,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       index + 1,
       student.student_code,
       student.full_name,
+      student.class_level ?? DEFAULT_STUDENT_CLASS_LEVEL,
       record?.rooms?.name ?? '',
       formatTime(record?.check_in_time),
       formatTime(record?.check_out_time),

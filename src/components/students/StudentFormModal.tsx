@@ -7,6 +7,7 @@ import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
+import { DEFAULT_STUDENT_CLASS_LEVEL, STUDENT_CLASS_LEVELS, normalizeStudentClassLevel } from '@/lib/student-input';
 import type { Student } from '@/types/db';
 
 export interface StudentFormModalProps {
@@ -21,6 +22,7 @@ export function StudentFormModal({ open, onClose, student }: StudentFormModalPro
 
   const [studentCode, setStudentCode] = useState('');
   const [fullName, setFullName] = useState('');
+  const [classLevel, setClassLevel] = useState<string>(DEFAULT_STUDENT_CLASS_LEVEL);
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
@@ -31,6 +33,7 @@ export function StudentFormModal({ open, onClose, student }: StudentFormModalPro
     if (open) {
       setStudentCode(student?.student_code ?? '');
       setFullName(student?.full_name ?? '');
+      setClassLevel(normalizeStudentClassLevel(student?.class_level));
       setPhone(student?.phone ?? '');
       setEmail(student?.email ?? '');
       setStatus(student?.status ?? 'active');
@@ -52,6 +55,7 @@ export function StudentFormModal({ open, onClose, student }: StudentFormModalPro
       body: JSON.stringify({
         student_code: studentCode,
         full_name: fullName,
+        class_level: classLevel,
         phone,
         email,
         status,
@@ -90,6 +94,21 @@ export function StudentFormModal({ open, onClose, student }: StudentFormModalPro
             onChange={(e) => setFullName(e.target.value)}
             placeholder="เช่น นายสมชาย ใจดี"
           />
+        </Field>
+
+        <Field label="ชั้นเรียน" htmlFor="class_level" required>
+          <Select
+            id="class_level"
+            required
+            value={classLevel}
+            onChange={(e) => setClassLevel(e.target.value as (typeof STUDENT_CLASS_LEVELS)[number])}
+          >
+            {STUDENT_CLASS_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {level}
+              </option>
+            ))}
+          </Select>
         </Field>
 
         <div className="grid grid-cols-2 gap-4">

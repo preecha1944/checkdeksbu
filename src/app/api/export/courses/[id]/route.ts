@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { jsonError, requireAuth } from '@/lib/api-helpers';
 import { createWorkbook, autosizeColumns, styleHeader, todayStamp, workbookResponse } from '@/lib/excel';
 import { buildGradeSummary, componentsByKind } from '@/lib/grades';
+import { DEFAULT_STUDENT_CLASS_LEVEL } from '@/lib/student-input';
 import type { Course, FinalGrade, GradeScale, ScoreCategory, ScoreComponent, Student, StudentScore } from '@/types/db';
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -57,6 +58,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     'ลำดับ',
     'รหัส',
     'ชื่อ-สกุล',
+    'ชั้นเรียน',
     ...courseworkComponents.map((component) => `${component.name} /${component.max_score}`),
     attendanceComponent ? `${attendanceComponent.name} /${attendanceComponent.max_score}` : 'Attendance',
     midtermComponent ? `${midtermComponent.name} /${midtermComponent.max_score}` : 'Midterm',
@@ -78,6 +80,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       index + 1,
       row.student.student_code,
       row.student.full_name,
+      row.student.class_level ?? DEFAULT_STUDENT_CLASS_LEVEL,
       ...courseworkComponents.map((component) => scoreMap.get(`${row.student.id}:${component.id}`) ?? ''),
       attendanceComponent ? scoreMap.get(`${row.student.id}:${attendanceComponent.id}`) ?? '' : '',
       midtermComponent ? scoreMap.get(`${row.student.id}:${midtermComponent.id}`) ?? '' : '',

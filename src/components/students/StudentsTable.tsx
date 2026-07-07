@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search, Pencil, Trash2, ChartColumn, Users } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -12,6 +13,7 @@ import { Table, TableHead, TableBody, TableRow, TableTh, TableTd } from '@/compo
 import { EmptyState } from '@/components/ui/EmptyState';
 import { StudentFormModal } from '@/components/students/StudentFormModal';
 import { STUDENT_STATUS_MAP } from '@/lib/status';
+import { DEFAULT_STUDENT_CLASS_LEVEL, STUDENT_CLASS_LEVELS } from '@/lib/student-input';
 import type { Student } from '@/types/db';
 
 export interface StudentsTableProps {
@@ -22,17 +24,19 @@ export interface StudentsTableProps {
 export function StudentsTable({ students, isViewer }: StudentsTableProps) {
   const router = useRouter();
   const [search, setSearch] = useState('');
+  const [classFilter, setClassFilter] = useState('all');
   const [editing, setEditing] = useState<Student | null | 'new'>(null);
   const [deleting, setDeleting] = useState<Student | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return students;
     return students.filter(
-      (s) => s.student_code.toLowerCase().includes(q) || s.full_name.toLowerCase().includes(q)
+      (s) =>
+        (classFilter === 'all' || (s.class_level ?? DEFAULT_STUDENT_CLASS_LEVEL) === classFilter) &&
+        (!q || s.student_code.toLowerCase().includes(q) || s.full_name.toLowerCase().includes(q))
     );
-  }, [students, search]);
+  }, [students, search, classFilter]);
 
   async function handleDelete() {
     if (!deleting) return;
@@ -47,7 +51,7 @@ export function StudentsTable({ students, isViewer }: StudentsTableProps) {
 
   return (
     <div>
-      <div className="mb-4 max-w-sm">
+      <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
           <Input
@@ -57,6 +61,14 @@ export function StudentsTable({ students, isViewer }: StudentsTableProps) {
             className="pl-10"
           />
         </div>
+        <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
+          <option value="all">ทุกชั้นเรียน</option>
+          {STUDENT_CLASS_LEVELS.map((level) => (
+            <option key={level} value={level}>
+              {level}
+            </option>
+          ))}
+        </Select>
       </div>
 
       {filtered.length === 0 ? (
@@ -71,6 +83,7 @@ export function StudentsTable({ students, isViewer }: StudentsTableProps) {
             <tr>
               <TableTh>รหัส</TableTh>
               <TableTh>ชื่อ-สกุล</TableTh>
+              <TableTh>ชั้นเรียน</TableTh>
               <TableTh>เบอร์โทร</TableTh>
               <TableTh>อีเมล</TableTh>
               <TableTh>สถานะ</TableTh>
@@ -84,6 +97,9 @@ export function StudentsTable({ students, isViewer }: StudentsTableProps) {
                 <TableRow key={s.id}>
                   <TableTd className="font-medium">{s.student_code}</TableTd>
                   <TableTd>{s.full_name}</TableTd>
+                  <TableTd>
+                    <Badge tone="primary">{s.class_level ?? DEFAULT_STUDENT_CLASS_LEVEL}</Badge>
+                  </TableTd>
                   <TableTd>{s.phone || '-'}</TableTd>
                   <TableTd>{s.email || '-'}</TableTd>
                   <TableTd>

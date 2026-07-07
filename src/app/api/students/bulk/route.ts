@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { jsonError, requireAuth } from '@/lib/api-helpers';
-import { normalizeOptionalStudentField } from '@/lib/student-input';
+import { isStudentClassLevel, normalizeOptionalStudentField, normalizeStudentClassLevel } from '@/lib/student-input';
 
 interface ParsedRow {
   lineNumber: number;
   studentCode: string;
   fullName: string;
+  classLevel: string;
   phone: string | null;
   email: string | null;
 }
@@ -18,16 +19,23 @@ function parseLine(line: string, lineNumber: number): ParsedRow | { lineNumber: 
     cols = line.split(/\s{2,}/).map((c) => c.trim());
   }
 
-  const [studentCode, fullName, phone, email] = cols;
+  const [studentCode, fullName] = cols;
 
   if (!studentCode || !fullName) {
     return { lineNumber, error: `บรรทัดที่ ${lineNumber}: ต้องมีรหัสนักศึกษาและชื่อ-สกุลอย่างน้อย` };
   }
 
+  const third = cols[2];
+  const hasClassColumn = cols.length >= 5 || isStudentClassLevel(third);
+  const classLevel = hasClassColumn ? normalizeStudentClassLevel(third) : normalizeStudentClassLevel(undefined);
+  const phone = hasClassColumn ? cols[3] : cols[2];
+  const email = hasClassColumn ? cols[4] : cols[3];
+
   return {
     lineNumber,
     studentCode,
     fullName,
+    classLevel,
     phone: normalizeOptionalStudentField(phone),
     email: normalizeOptionalStudentField(email),
   };
@@ -75,6 +83,7 @@ export async function POST(request: Request) {
         .from('students')
         .update({
           full_name: row.fullName,
+          class_level: row.classLevel,
           phone: row.phone,
           email: row.email,
           updated_at: new Date().toISOString(),
@@ -90,6 +99,7 @@ export async function POST(request: Request) {
         {
           student_code: row.studentCode,
           full_name: row.fullName,
+          class_level: row.classLevel,
           phone: row.phone,
           email: row.email,
           status: 'active',

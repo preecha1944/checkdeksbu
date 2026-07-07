@@ -56,19 +56,19 @@ export default async function DashboardPage() {
   const { data: studentsRaw } = await supabase.from('students').select('id, status');
   const { data: sessionsRaw } = await supabase
     .from('class_sessions')
-    .select('*')
+    .select('id, title, learning_date, start_time')
     .order('learning_date', { ascending: false })
     .order('start_time', { ascending: false });
   const { data: closedSessionsRaw } = await supabase
     .from('class_sessions')
-    .select('*')
+    .select('id, learning_date')
     .eq('status', 'closed')
     .order('learning_date', { ascending: false })
     .order('start_time', { ascending: false })
     .limit(7);
   const { data: recentRecordsRaw } = await supabase
     .from('attendance_records')
-    .select('*, students(student_code, full_name), rooms(name), class_sessions(id, title, learning_date)')
+    .select('id, check_in_time, updated_at, final_status, students(student_code, full_name), rooms(name), class_sessions(id, title, learning_date)')
     .order('updated_at', { ascending: false })
     .limit(10);
 
@@ -82,7 +82,7 @@ export default async function DashboardPage() {
   const { data: latestRecordsRaw } = latestSession
     ? await supabase
         .from('attendance_records')
-        .select('*, students(student_code, full_name), rooms(name)')
+        .select('room_id, check_in_time, check_out_time, final_status, rooms(name)')
         .eq('session_id', latestSession.id)
         .order('updated_at', { ascending: false })
     : { data: [] };

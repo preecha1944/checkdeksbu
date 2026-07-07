@@ -19,7 +19,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   const { count: totalStudents } = await supabase
     .from('students')
-    .select('*', { count: 'exact', head: true })
+    .select('id', { count: 'exact', head: true })
     .eq('status', 'active');
   const { data: records } = await supabase
     .from('attendance_records')

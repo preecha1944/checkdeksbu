@@ -23,7 +23,7 @@ export default async function SessionsPage() {
   // sessions/[id]/page.tsx) แยก await ทำให้แต่ละตัวคง type ที่ถูกต้องของตัวเอง
   const { data: sessionsRaw } = await supabase
     .from('class_sessions')
-    .select('*')
+    .select('id, title, course_id, learning_date, start_time, end_time, status')
     .order('learning_date', { ascending: false })
     .order('start_time', { ascending: false });
   const { data: coursesRaw } = await supabase
@@ -31,19 +31,20 @@ export default async function SessionsPage() {
     .select('id, course_name')
     .order('created_at', { ascending: false });
   const { data: roomsRaw } = await supabase.from('rooms').select('id, name').eq('status', 'active').order('name');
-  const { data: recordsRaw } = await supabase.from('attendance_records').select('session_id, check_in_time');
+  const { data: recordsRaw } = await supabase
+    .from('attendance_records')
+    .select('session_id')
+    .not('check_in_time', 'is', null);
 
   const sessionList = (sessionsRaw ?? []) as unknown as ClassSession[];
   const courses = (coursesRaw ?? []) as unknown as { id: string; course_name: string }[];
   const rooms = (roomsRaw ?? []) as unknown as { id: string; name: string }[];
-  const records = (recordsRaw ?? []) as unknown as { session_id: string; check_in_time: string | null }[];
+  const records = (recordsRaw ?? []) as unknown as { session_id: string }[];
 
   const courseNameMap = new Map(courses.map((c) => [c.id, c.course_name]));
   const checkedInCount = new Map<string, number>();
   for (const r of records) {
-    if (r.check_in_time) {
-      checkedInCount.set(r.session_id, (checkedInCount.get(r.session_id) ?? 0) + 1);
-    }
+    checkedInCount.set(r.session_id, (checkedInCount.get(r.session_id) ?? 0) + 1);
   }
 
   return (

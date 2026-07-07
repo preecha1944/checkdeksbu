@@ -21,7 +21,11 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
   const supabase = createServiceClient();
 
-  const { data: sessionRow } = await supabase.from('class_sessions').select('*').eq('id', id).maybeSingle();
+  const { data: sessionRow } = await supabase
+    .from('class_sessions')
+    .select('id, title, course_id, learning_date, start_time, end_time, status')
+    .eq('id', id)
+    .maybeSingle();
   if (!sessionRow) notFound();
   const session = sessionRow as unknown as ClassSession;
 
@@ -44,7 +48,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
   const { data: recordsRaw } = await supabase
     .from('attendance_records')
-    .select('*, students(student_code, full_name), rooms(id, name)')
+    .select('id, room_id, check_in_time, check_out_time, late_minutes, final_status, note, students(student_code, full_name), rooms(id, name)')
     .eq('session_id', id)
     .order('check_in_time', { ascending: true });
   const records = recordsRaw as unknown as
@@ -58,7 +62,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
   const { count: totalStudents } = await supabase
     .from('students')
-    .select('*', { count: 'exact', head: true })
+    .select('id', { count: 'exact', head: true })
     .eq('status', 'active');
 
   const rooms = (sessionRooms ?? [])

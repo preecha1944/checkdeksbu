@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, GraduationCap, AlertTriangle, LogIn, LogOut } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
@@ -70,24 +70,29 @@ export function ScanFlow() {
 
   const [success, setSuccess] = useState<SuccessInfo | null>(null);
 
-  useEffect(() => {
+  const loadSessionInfo = useCallback(async () => {
     if (!sid || !token) {
       setPhase('invalid');
       return;
     }
 
-    (async () => {
-      const res = await fetch(`/api/attendance/session-info?sid=${sid}&t=${token}`);
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setInvalidMessage(data?.error ?? 'ไม่สามารถโหลดข้อมูลรอบเรียนได้');
-        setPhase('invalid');
-        return;
-      }
-      setSessionInfo(data);
-      setPhase('entry');
-    })();
+    const res = await fetch(`/api/attendance/session-info?sid=${sid}&t=${token}`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setInvalidMessage(data?.error ?? 'ไม่สามารถโหลดข้อมูลรอบเรียนได้');
+      setPhase('invalid');
+      return;
+    }
+
+    setSessionInfo(data);
+    setPhase((current) => (current === 'loading' || current === 'invalid' ? 'entry' : current));
   }, [sid, token]);
+
+  useEffect(() => {
+    loadSessionInfo();
+    const interval = setInterval(loadSessionInfo, 5000);
+    return () => clearInterval(interval);
+  }, [loadSessionInfo]);
 
   function resetToEntry() {
     setStudentCode('');

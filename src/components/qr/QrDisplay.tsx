@@ -27,6 +27,7 @@ interface QrTokenResponse {
 
 interface LiveResponse {
   totalStudents: number;
+  status: string;
   checkedIn: number;
   checkedOut: number;
   late: number;
@@ -67,13 +68,20 @@ export function QrDisplay({ session }: { session: QrDisplaySession }) {
   const fetchLive = useCallback(async () => {
     try {
       const res = await fetch(`/api/sessions/${session.id}/live`);
-      if (!res.ok) return;
+      if (!res.ok) {
+        if (res.status === 404) router.push('/sessions');
+        return;
+      }
       const data: LiveResponse = await res.json();
+      if (data.status !== 'open') {
+        router.push(`/sessions/${session.id}`);
+        return;
+      }
       setLive(data);
     } catch {
       // เงียบไว้ — ไม่ต้อง block หน้าจอ QR เพราะ live count ล้มเหลวชั่วคราว
     }
-  }, [session.id]);
+  }, [router, session.id]);
 
   useEffect(() => {
     fetchToken();

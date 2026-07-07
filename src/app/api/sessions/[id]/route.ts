@@ -97,3 +97,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (error) return jsonError(error.message, 500);
   return NextResponse.json({ session: updated });
 }
+
+// DELETE /api/sessions/[id] — ลบรอบเรียนที่สร้างผิด พร้อมข้อมูลเช็คชื่อ/QR ที่ผูกอยู่กับรอบนี้
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    await requireAuth(request);
+  } catch (e) {
+    if (e instanceof NextResponse) return e;
+    throw e;
+  }
+
+  const { id } = await params;
+  const supabase = createServiceClient();
+
+  const { data: existing } = await supabase.from('class_sessions').select('id').eq('id', id).maybeSingle();
+  if (!existing) return jsonError('ไม่พบรอบเรียน', 404);
+
+  const { error } = await supabase.from('class_sessions').delete().eq('id', id);
+  if (error) return jsonError('ลบรอบเรียนไม่สำเร็จ กรุณาลองใหม่', 500);
+
+  return NextResponse.json({ ok: true });
+}

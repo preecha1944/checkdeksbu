@@ -6,15 +6,17 @@ import { useRouter } from 'next/navigation';
 import { QrCode, PlayCircle, StopCircle, Download } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { DeleteSessionButton } from '@/components/attendance/DeleteSessionButton';
 import type { SessionStatus } from '@/types/db';
 
 export interface SessionStatusActionsProps {
   sessionId: string;
+  sessionTitle: string;
   status: SessionStatus;
   isViewer: boolean;
 }
 
-export function SessionStatusActions({ sessionId, status, isViewer }: SessionStatusActionsProps) {
+export function SessionStatusActions({ sessionId, sessionTitle, status, isViewer }: SessionStatusActionsProps) {
   const router = useRouter();
   const [confirmClose, setConfirmClose] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -76,6 +78,8 @@ export function SessionStatusActions({ sessionId, status, isViewer }: SessionSta
           </Button>
         </a>
       )}
+
+      <DeleteSessionButton sessionId={sessionId} sessionTitle={sessionTitle} redirectTo="/sessions" size="md" />
 
       <Modal open={confirmClose} onClose={() => setConfirmClose(false)} title="ยืนยันปิดรอบเรียน">
         <div className="flex flex-col gap-4">

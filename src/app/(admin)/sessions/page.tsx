@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Table, TableHead, TableBody, TableRow, TableTh, TableTd } from '@/components/ui/Table';
 import { CreateSessionButton } from '@/components/attendance/CreateSessionButton';
+import { DeleteSessionButton } from '@/components/attendance/DeleteSessionButton';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getSessionUser } from '@/lib/supabase/auth';
 import { formatThaiDateOnly, formatTimeOfDay } from '@/lib/time';
@@ -110,6 +111,7 @@ export default async function SessionsPage() {
                           </Button>
                         </Link>
                       )}
+                      {!isViewer && <DeleteSessionButton sessionId={s.id} sessionTitle={s.title} />}
                     </div>
                   </TableTd>
                 </TableRow>

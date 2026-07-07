@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const supabase = createServiceClient();
 
-  const { data: session } = await supabase.from('class_sessions').select('id').eq('id', id).maybeSingle();
+  const { data: session } = await supabase.from('class_sessions').select('id, status').eq('id', id).maybeSingle();
   if (!session) return jsonError('ไม่พบรอบเรียน', 404);
 
   const { count: totalStudents } = await supabase
@@ -52,6 +52,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   return NextResponse.json({
     totalStudents: totalStudents ?? 0,
+    status: session.status,
     checkedIn,
     checkedOut,
     late,

@@ -108,7 +108,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
       />
 
       <div className="mb-6">
-        <SessionStatusActions sessionId={session.id} status={session.status} isViewer={isViewer} />
+        <SessionStatusActions sessionId={session.id} sessionTitle={session.title} status={session.status} isViewer={isViewer} />
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">

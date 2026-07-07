@@ -112,8 +112,8 @@ export default async function DashboardPage() {
     name,
     value,
   }));
-  const roomOne = roomCounts.get('ห้อง 1') ?? 0;
-  const roomTwo = roomCounts.get('ห้อง 2') ?? 0;
+  const sectionSix = roomCounts.get('Section 6') ?? 0;
+  const sectionSeven = roomCounts.get('Section 7') ?? 0;
 
   const recordsBySession = new Map<string, Pick<AttendanceRecordRow, 'session_id' | 'final_status'>[]>();
   for (const record of closedRecords) {
@@ -181,8 +181,8 @@ export default async function DashboardPage() {
             <StatCard icon={LogOut} label="Check-out" value={checkedOut} tint="info" />
             <StatCard icon={UserX} label="ขาด" value={absent} tint="danger" />
             <StatCard icon={Clock} label="มาสาย" value={late} tint="warning" />
-            <StatCard icon={Home} label="ห้อง 1" value={roomOne} tint="primary" />
-            <StatCard icon={Home} label="ห้อง 2" value={roomTwo} tint="primary-light" />
+            <StatCard icon={Home} label="Section 6" value={sectionSix} tint="primary" />
+            <StatCard icon={Home} label="Section 7" value={sectionSeven} tint="primary-light" />
           </div>
 
           <div className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">

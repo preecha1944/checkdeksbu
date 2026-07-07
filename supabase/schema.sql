@@ -200,9 +200,9 @@ create table if not exists final_grades (
 
 -- ========== SEED ==========
 insert into rooms (name, capacity)
-select 'ห้อง 1', 40 where not exists (select 1 from rooms where name = 'ห้อง 1');
+select 'Section 6', 40 where not exists (select 1 from rooms where name = 'Section 6');
 insert into rooms (name, capacity)
-select 'ห้อง 2', 40 where not exists (select 1 from rooms where name = 'ห้อง 2');
+select 'Section 7', 40 where not exists (select 1 from rooms where name = 'Section 7');
 
 -- ========== RLS ==========
 -- เปิด RLS ทุกตาราง แต่ไม่สร้าง policy → client (anon key) อ่าน/เขียนตรงไม่ได้เลย

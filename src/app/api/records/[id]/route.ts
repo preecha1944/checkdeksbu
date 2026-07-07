@@ -78,3 +78,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (error) return jsonError(error.message, 500);
   return NextResponse.json({ record: updated });
 }
+
+// DELETE /api/records/[id] — ลบ record เช็คชื่อรายคนเพื่อให้สแกนใหม่ได้
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    await requireAuth(request);
+  } catch (e) {
+    if (e instanceof NextResponse) return e;
+    throw e;
+  }
+
+  const { id } = await params;
+  const supabase = createServiceClient();
+
+  const { data: record } = await supabase.from('attendance_records').select('id').eq('id', id).maybeSingle();
+  if (!record) return jsonError('ไม่พบข้อมูลการเช็คชื่อ', 404);
+
+  const { error } = await supabase.from('attendance_records').delete().eq('id', id);
+  if (error) return jsonError('ลบข้อมูลการเช็คชื่อไม่สำเร็จ กรุณาลองใหม่', 500);
+
+  return NextResponse.json({ ok: true });
+}

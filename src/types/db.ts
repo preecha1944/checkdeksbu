@@ -160,6 +160,7 @@ export interface GradeScale {
   grade: string;
   min_score: number;
   max_score: number;
+  grade_point: number | null; // ค่าคะแนน A=4, B+=3.5, ... (null = เกรดที่ไม่คิดค่าคะแนน)
   sort_order: number;
 }
 
@@ -173,6 +174,7 @@ export interface FinalGrade {
   final_score: number | null;
   total_score: number | null;
   grade: string | null;
+  grade_point: number | null;
   special_status: SpecialStatus | null;
   remark: string | null;
   updated_at: string;

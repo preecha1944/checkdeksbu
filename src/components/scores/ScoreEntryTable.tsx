@@ -236,7 +236,9 @@ export function ScoreEntryTable({
                     })}
                     <td className="sticky right-20 z-10 bg-card px-3 py-2 text-right font-semibold text-ink">{totals.total}</td>
                     <td className="sticky right-0 z-10 bg-card px-3 py-2 text-center">
-                      <Badge tone={totals.grade === '-' ? 'neutral' : 'primary'}>{totals.grade}</Badge>
+                      <span title={`กรอกคะแนนแล้ว ${totals.entered_count} จาก ${totals.expected_count} ช่อง`}>
+                        <Badge tone={totals.grade === '-' ? 'neutral' : totals.grade === 'I' ? 'warning' : 'primary'}>{totals.grade}</Badge>
+                      </span>
                     </td>
                   </tr>
                 );

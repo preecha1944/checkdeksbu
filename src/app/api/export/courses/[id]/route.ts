@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { jsonError, requireAuth } from '@/lib/api-helpers';
 import { createWorkbook, autosizeColumns, styleHeader, todayStamp, workbookResponse } from '@/lib/excel';
-import { buildGradeSummary, componentsByKind } from '@/lib/grades';
+import { buildGradeStats, buildGradeSummary, componentsByKind, orderComponents } from '@/lib/grades';
 import { DEFAULT_STUDENT_CLASS_LEVEL } from '@/lib/student-input';
 import type { Course, FinalGrade, GradeScale, ScoreCategory, ScoreComponent, Student, StudentScore } from '@/types/db';
 
@@ -35,21 +35,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const scores = (scoresRaw ?? []) as unknown as StudentScore[];
   const scales = (scalesRaw ?? []) as unknown as GradeScale[];
   const finalGrades = (finalRaw ?? []) as unknown as FinalGrade[];
+
+  // ออกทุกช่องกรอกคะแนนตามลำดับหมวด (A1-A8, เข้าเรียน, ดิบ Midterm, Final ข้อ 1-3) ตามไฟล์ต้นฉบับ
+  const ordered = orderComponents(categories, components);
   const grouped = componentsByKind(categories, components);
-  const courseworkComponents = grouped.coursework;
-  const attendanceComponent = grouped.attendance[0] ?? null;
-  const midtermComponent = grouped.midterm[0] ?? null;
-  const finalComponent = grouped.final[0] ?? null;
+  const maxOf = (kind: ScoreCategory['kind']) => Number(categories.find((category) => category.kind === kind)?.max_score ?? 0);
+  const rawMaxOf = (kind: ScoreCategory['kind']) => grouped[kind].reduce((sum, component) => sum + Number(component.max_score), 0);
+
   const scoreMap = new Map(scores.map((score) => [`${score.student_id}:${score.score_component_id}`, score.score]));
   const meta = new Map(finalGrades.map((row) => [row.student_id, { special_status: row.special_status, remark: row.remark }]));
-  const summary = buildGradeSummary({
-    students,
-    categories,
-    components,
-    scores,
-    scales,
-    finalGradeMeta: meta,
-  });
+  const summary = buildGradeSummary({ students, categories, components, scores, scales, finalGradeMeta: meta });
+  const stats = buildGradeStats(summary, scales);
 
   const workbook = createWorkbook();
   const sheet = workbook.addWorksheet('Grades');
@@ -59,12 +55,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     'รหัส',
     'ชื่อ-สกุล',
     'Section',
-    ...courseworkComponents.map((component) => `${component.name} /${component.max_score}`),
-    attendanceComponent ? `${attendanceComponent.name} /${attendanceComponent.max_score}` : 'Attendance',
-    midtermComponent ? `${midtermComponent.name} /${midtermComponent.max_score}` : 'Midterm',
-    finalComponent ? `${finalComponent.name} /${finalComponent.max_score}` : 'Final',
-    'Total',
+    ...ordered.map((component) => `${component.name} /${component.max_score}`),
+    `Coursework /${maxOf('coursework')}`,
+    `Attendance /${maxOf('attendance')}`,
+    `Midterm /${maxOf('midterm')}`,
+    `Final /${maxOf('final')}`,
+    'Grand Total /100',
     'Grade',
+    'ค่าคะแนน',
     'Special Status',
     'Remark',
   ];
@@ -81,17 +79,49 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       row.student.student_code,
       row.student.full_name,
       row.student.class_level ?? DEFAULT_STUDENT_CLASS_LEVEL,
-      ...courseworkComponents.map((component) => scoreMap.get(`${row.student.id}:${component.id}`) ?? ''),
-      attendanceComponent ? scoreMap.get(`${row.student.id}:${attendanceComponent.id}`) ?? '' : '',
-      midtermComponent ? scoreMap.get(`${row.student.id}:${midtermComponent.id}`) ?? '' : '',
-      finalComponent ? scoreMap.get(`${row.student.id}:${finalComponent.id}`) ?? '' : '',
+      ...ordered.map((component) => scoreMap.get(`${row.student.id}:${component.id}`) ?? ''),
+      row.coursework,
+      row.attendance,
+      row.midterm,
+      row.final,
       row.total,
       row.grade,
+      row.grade_point ?? '',
       row.special_status ?? '',
       row.remark ?? '',
     ]);
   });
 
+  sheet.addRow([]);
+  sheet.addRow(['สรุป : จำนวนนักศึกษา', stats.studentCount]);
+  sheet.addRow(['คะแนนเฉลี่ยของห้อง (Grand Total)', stats.averageTotal ?? '-']);
+  sheet.addRow(['GPA เฉลี่ยของห้อง', stats.gpa ?? '-']);
+  sheet.addRow(['การกระจายเกรด', ...stats.distribution.flatMap((item) => [item.grade, item.count])]);
   autosizeColumns(sheet);
+
+  // ชีตเกณฑ์ — เทียบได้กับชีต "เกณฑ์เกรด" ในไฟล์ คิดเกรด_MEd_Section6-7.xlsx
+  const scaleSheet = workbook.addWorksheet('เกณฑ์เกรด');
+  scaleSheet.addRow(['ตารางที่ 1 : เกณฑ์การตัดเกรด']);
+  scaleSheet.getRow(1).font = { bold: true, size: 12 };
+  scaleSheet.addRow(['เกรด', 'คะแนนต่ำสุด', 'คะแนนสูงสุด', 'ค่าคะแนน']);
+  styleHeader(scaleSheet.getRow(2));
+  for (const scale of scales) {
+    scaleSheet.addRow([scale.grade, Number(scale.min_score), Number(scale.max_score), scale.grade_point ?? '-']);
+  }
+
+  scaleSheet.addRow([]);
+  const structureTitleRow = scaleSheet.addRow(['ตารางที่ 2 : โครงสร้างคะแนนเต็ม 100']);
+  structureTitleRow.font = { bold: true, size: 12 };
+  scaleSheet.addRow(['องค์ประกอบ', 'คะแนนดิบเต็ม', 'น้ำหนักใน 100', 'จำนวนช่องกรอก']);
+  styleHeader(scaleSheet.getRow(scaleSheet.rowCount));
+  for (const category of categories) {
+    scaleSheet.addRow([category.name, rawMaxOf(category.kind), Number(category.max_score), grouped[category.kind].length]);
+  }
+  scaleSheet.addRow(['Grand Total', '-', categories.reduce((sum, category) => sum + Number(category.max_score), 0), components.length]);
+  scaleSheet.addRow([]);
+  scaleSheet.addRow(['หมายเหตุ : คะแนนแต่ละหมวดคิดแบบเทียบสัดส่วน (ผลรวมดิบ ÷ คะแนนดิบเต็ม × น้ำหนักใน 100)']);
+  scaleSheet.addRow(['ถ้ากรอกคะแนนไม่ครบทุกช่อง ระบบจะขึ้นเกรด I อัตโนมัติ ถ้ายังไม่กรอกเลยจะขึ้น -']);
+  autosizeColumns(scaleSheet);
+
   return workbookResponse(workbook, `course-${todayStamp()}.xlsx`);
 }

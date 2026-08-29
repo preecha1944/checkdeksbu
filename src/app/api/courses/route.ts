@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAuth, jsonError } from '@/lib/api-helpers';
-import { DEFAULT_CATEGORIES, DEFAULT_GRADE_SCALE } from '@/lib/constants';
-import type { Course } from '@/types/db';
+import { DEFAULT_CATEGORIES, DEFAULT_COMPONENTS, DEFAULT_GRADE_SCALE } from '@/lib/constants';
+import type { Course, ScoreCategory } from '@/types/db';
 
 export async function GET() {
   try {
@@ -84,18 +84,19 @@ export async function POST(request: Request) {
     return jsonError(catError?.message ?? 'สร้างหมวดคะแนนไม่สำเร็จ', 500);
   }
 
-  const systemComponents = categories
-    .filter((c) => c.kind !== 'coursework')
-    .map((c) => ({
+  // seed ช่องกรอกคะแนนทุกหมวดตามโครงในไฟล์ คิดเกรด_MEd_Section6-7.xlsx (รวม 12 ช่อง)
+  const seedComponents = (categories as unknown as ScoreCategory[]).flatMap((c) =>
+    (DEFAULT_COMPONENTS[c.kind] ?? []).map((component, index) => ({
       course_id: typedCourse.id,
       category_id: c.id,
-      name: c.name,
-      max_score: c.max_score,
-      sort_order: 0,
-      is_system: true,
-    }));
+      name: component.name,
+      max_score: component.max_score,
+      sort_order: index + 1,
+      is_system: component.is_system,
+    }))
+  );
 
-  const { error: compError } = await supabase.from('score_components').insert(systemComponents);
+  const { error: compError } = await supabase.from('score_components').insert(seedComponents);
   if (compError) {
     return jsonError(compError.message, 500);
   }
@@ -106,6 +107,7 @@ export async function POST(request: Request) {
       grade: g.grade,
       min_score: g.min_score,
       max_score: g.max_score,
+      grade_point: g.grade_point,
       sort_order: g.sort_order,
     }))
   );

@@ -126,7 +126,8 @@ export function ScoreSetupPanel({
             >
               <p className="font-medium text-ink">{category.name}</p>
               <p className="mt-1 text-sm text-ink-muted">
-                {category.kind === 'coursework' ? total : category.max_score} / {category.max_score} คะแนน
+                {/* แสดงคะแนนดิบรวมของช่องกรอก แล้วชี้ไปที่น้ำหนักจริงในคะแนนเต็ม 100 (เช่น Midterm ดิบ 30 → 10) */}
+                {total === Number(category.max_score) ? `${total} คะแนน` : `ดิบ ${total} → ${category.max_score} คะแนน`}
               </p>
             </button>
           );
@@ -212,6 +213,26 @@ export function ScoreSetupPanel({
               <RefreshCw className="h-4 w-4" aria-hidden="true" />
               ดึงคะแนนจากระบบเช็คชื่อ
             </Button>
+          </div>
+        ) : selectedComponents.length > 0 ? (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-ink-muted">
+              ช่องกรอกคะแนนของหมวดนี้ถูกตั้งไว้ตายตัวตามโครงข้อสอบ แก้ไม่ได้ ให้ไปกรอกคะแนนที่หน้า Score Entry
+            </p>
+            <div className="flex flex-col gap-2">
+              {selectedComponents.map((component) => (
+                <div key={component.id} className="flex items-center justify-between rounded-xl border border-border-soft px-4 py-3">
+                  <span className="text-ink">{component.name}</span>
+                  <Badge tone="neutral">เต็ม {component.max_score}</Badge>
+                </div>
+              ))}
+            </div>
+            {selected && Number(selected.max_score) !== selectedComponents.reduce((sum, c) => sum + Number(c.max_score), 0) && (
+              <p className="text-sm text-ink-muted">
+                คะแนนดิบรวม {selectedComponents.reduce((sum, c) => sum + Number(c.max_score), 0)} จะถูกเทียบสัดส่วนเป็น{' '}
+                {selected.max_score} คะแนนในคะแนนเต็ม 100
+              </p>
+            )}
           </div>
         ) : (
           <EmptyState title="กรอกคะแนนที่หน้า Score Entry" description="Midterm และ Final ใช้ช่องกรอกคะแนนในตารางคะแนน" />

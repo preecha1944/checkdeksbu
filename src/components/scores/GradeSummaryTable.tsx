@@ -10,10 +10,10 @@ import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { SPECIAL_STATUSES } from '@/lib/constants';
 import { DEFAULT_STUDENT_CLASS_LEVEL, STUDENT_CLASS_LEVELS } from '@/lib/student-input';
-import type { GradeSummaryRow } from '@/lib/grades';
-import type { Course, SpecialStatus } from '@/types/db';
+import { buildGradeStats, type GradeSummaryRow } from '@/lib/grades';
+import type { Course, GradeScale, SpecialStatus } from '@/types/db';
 
-export function GradeSummaryTable({ course, rows }: { course: Course; rows: GradeSummaryRow[] }) {
+export function GradeSummaryTable({ course, rows, scales }: { course: Course; rows: GradeSummaryRow[]; scales: GradeScale[] }) {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [classFilter, setClassFilter] = useState('all');
@@ -26,6 +26,9 @@ export function GradeSummaryTable({ course, rows }: { course: Course; rows: Grad
       rows.filter((row) => classFilter === 'all' || (row.student.class_level ?? DEFAULT_STUDENT_CLASS_LEVEL) === classFilter),
     [rows, classFilter]
   );
+
+  // สถิติคิดจากแถวที่กรองอยู่ เพื่อให้ดู GPA แยกราย Section ได้เหมือนชีต MED6/MED7 ในไฟล์ Excel
+  const stats = useMemo(() => buildGradeStats(filteredRows, scales), [filteredRows, scales]);
 
   async function saveMeta(studentId: string, specialStatus: SpecialStatus | null, remark: string) {
     setMessage(null);
@@ -75,6 +78,7 @@ export function GradeSummaryTable({ course, rows }: { course: Course; rows: Grad
               <TableTh>Final</TableTh>
               <TableTh>Total</TableTh>
               <TableTh>Grade</TableTh>
+              <TableTh>ค่าคะแนน</TableTh>
               <TableTh>Special</TableTh>
               <TableTh>Remark</TableTh>
             </tr>
@@ -93,8 +97,11 @@ export function GradeSummaryTable({ course, rows }: { course: Course; rows: Grad
                 <TableTd>{row.final}</TableTd>
                 <TableTd className="font-semibold">{row.total}</TableTd>
                 <TableTd>
-                  <Badge tone={row.grade === '-' ? 'neutral' : 'primary'}>{row.grade}</Badge>
+                  <span title={`กรอกคะแนนแล้ว ${row.entered_count} จาก ${row.expected_count} ช่อง`}>
+                    <Badge tone={row.grade === '-' ? 'neutral' : row.grade === 'I' ? 'warning' : 'primary'}>{row.grade}</Badge>
+                  </span>
                 </TableTd>
+                <TableTd className="font-medium">{row.grade_point ?? '-'}</TableTd>
                 <TableTd>
                   <Select
                     value={row.special_status ?? ''}
@@ -123,6 +130,39 @@ export function GradeSummaryTable({ course, rows }: { course: Course; rows: Grad
             ))}
           </TableBody>
         </Table>
+      )}
+
+      {filteredRows.length > 0 && (
+        <div className="mt-4 rounded-xl border border-border-soft bg-neutral-soft/40 p-4">
+          <p className="mb-3 text-sm font-semibold text-ink">สรุปผลการเรียน</p>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div>
+              <p className="text-xs text-ink-muted">จำนวนนักศึกษา</p>
+              <p className="text-lg font-semibold text-ink">{stats.studentCount}</p>
+            </div>
+            <div>
+              <p className="text-xs text-ink-muted">คะแนนเฉลี่ยของห้อง</p>
+              <p className="text-lg font-semibold text-ink">{stats.averageTotal ?? '-'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-ink-muted">GPA เฉลี่ยของห้อง</p>
+              <p className="text-lg font-semibold text-ink">{stats.gpa ?? '-'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-ink-muted">คิดเกรดได้แล้ว</p>
+              <p className="text-lg font-semibold text-ink">
+                {stats.gradedCount} / {stats.studentCount}
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {stats.distribution.map((item) => (
+              <Badge key={item.grade} tone={item.count > 0 ? 'primary' : 'neutral'}>
+                {item.grade} : {item.count}
+              </Badge>
+            ))}
+          </div>
+        </div>
       )}
     </Card>
   );

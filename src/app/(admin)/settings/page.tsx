@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/Button';
 import { Table, TableBody, TableHead, TableRow, TableTd, TableTh } from '@/components/ui/Table';
 import { getSessionUser } from '@/lib/supabase/auth';
 import { EARLY_LEAVE_MINUTES, QR_GRACE_SECONDS, QR_ROTATE_SECONDS, TZ_OFFSET } from '@/lib/constants';
+import { SectionManager, type SectionWithCount } from '@/components/settings/SectionManager';
+import { createServiceClient } from '@/lib/supabase/server';
+import { listSections } from '@/lib/sections';
 
 const manualChecklist = [
   'รัน supabase/schema.sql ใน Supabase SQL Editor',
@@ -21,6 +24,18 @@ export default async function SettingsPage() {
   const sessionUser = await getSessionUser();
   const role = sessionUser?.profile?.role ?? 'teacher';
   const fullName = sessionUser?.profile?.full_name ?? sessionUser?.email ?? 'ผู้ใช้งาน';
+
+  const sections = await listSections();
+  const supabase = createServiceClient();
+  const { data: studentsRaw } = await supabase.from('students').select('class_level');
+  const counts = new Map<string, number>();
+  for (const row of (studentsRaw ?? []) as unknown as { class_level: string }[]) {
+    counts.set(row.class_level, (counts.get(row.class_level) ?? 0) + 1);
+  }
+  const sectionsWithCount: SectionWithCount[] = sections.map((section) => ({
+    ...section,
+    student_count: counts.get(section.name) ?? 0,
+  }));
 
   return (
     <div>
@@ -71,6 +86,10 @@ export default async function SettingsPage() {
             <p className="font-[family-name:var(--font-heading)] text-2xl font-bold text-ink">{EARLY_LEAVE_MINUTES} นาที</p>
           </div>
         </Card>
+      </div>
+
+      <div className="mb-6">
+        <SectionManager sections={sectionsWithCount} isViewer={role === 'viewer'} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">

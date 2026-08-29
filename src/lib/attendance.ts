@@ -7,11 +7,13 @@ import { atBangkok } from '@/lib/time';
 import { QR_ROTATE_SECONDS, QR_GRACE_SECONDS } from '@/lib/constants';
 import type { ClassSession } from '@/types/db';
 
-/** โยนพร้อมข้อความไทยที่พร้อมส่งตรงให้ client เมื่อ validate QR ไม่ผ่าน */
+/** โยนพร้อมข้อความไทยที่พร้อมส่งตรงให้ client เมื่อ validate QR ไม่ผ่าน (code = รหัสให้ client แปลภาษา) */
 export class QrValidationError extends Error {
-  constructor(message: string) {
+  code: string;
+  constructor(message: string, code: string) {
     super(message);
     this.name = 'QrValidationError';
+    this.code = code;
   }
 }
 
@@ -31,11 +33,11 @@ export async function validateQr(sessionId: string, token: string): Promise<Clas
     .maybeSingle();
 
   if (!qrToken) {
-    throw new QrValidationError('QR Code ไม่ถูกต้อง');
+    throw new QrValidationError('QR Code ไม่ถูกต้อง', 'INVALID_QR');
   }
 
   if (Date.now() > new Date(qrToken.expires_at).getTime()) {
-    throw new QrValidationError('QR Code หมดอายุ กรุณาสแกน QR ใหม่จากหน้าจอ');
+    throw new QrValidationError('QR Code หมดอายุ กรุณาสแกน QR ใหม่จากหน้าจอ', 'QR_EXPIRED');
   }
 
   const { data: session } = await supabase
@@ -45,7 +47,7 @@ export async function validateQr(sessionId: string, token: string): Promise<Clas
     .maybeSingle();
 
   if (!session || session.status !== 'open') {
-    throw new QrValidationError('รอบเรียนปิดแล้ว ไม่สามารถเช็คชื่อได้');
+    throw new QrValidationError('รอบเรียนปิดแล้ว ไม่สามารถเช็คชื่อได้', 'SESSION_CLOSED');
   }
 
   return session;

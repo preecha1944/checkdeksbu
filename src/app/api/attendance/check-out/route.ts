@@ -6,7 +6,7 @@ import { validateQr, QrValidationError, calcCheckOut } from '@/lib/attendance';
 // POST /api/attendance/check-out — public (validate QR ทุก request) ดู §7.3
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
-  if (!body) return jsonError('ข้อมูลไม่ถูกต้อง');
+  if (!body) return jsonError('ข้อมูลไม่ถูกต้อง', 400, 'BAD_REQUEST');
 
   const { sessionId, token, studentCode } = body as {
     sessionId?: string;
@@ -14,14 +14,14 @@ export async function POST(request: Request) {
     studentCode?: string;
   };
 
-  if (!sessionId || !token) return jsonError('ลิงก์ไม่ถูกต้อง กรุณาสแกน QR ใหม่จากหน้าจอในห้องเรียน');
-  if (!studentCode?.trim()) return jsonError('กรุณากรอกรหัสนักศึกษา');
+  if (!sessionId || !token) return jsonError('ลิงก์ไม่ถูกต้อง กรุณาสแกน QR ใหม่จากหน้าจอในห้องเรียน', 400, 'MISSING_LINK');
+  if (!studentCode?.trim()) return jsonError('กรุณากรอกรหัสนักศึกษา', 400, 'MISSING_STUDENT_CODE');
 
   let session;
   try {
     session = await validateQr(sessionId, token);
   } catch (e) {
-    if (e instanceof QrValidationError) return jsonError(e.message, 400);
+    if (e instanceof QrValidationError) return jsonError(e.message, 400, e.code);
     throw e;
   }
 
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     .eq('status', 'active')
     .maybeSingle();
 
-  if (!student) return jsonError('ไม่พบรหัสนักศึกษา กรุณาตรวจสอบอีกครั้ง', 404);
+  if (!student) return jsonError('ไม่พบรหัสนักศึกษา กรุณาตรวจสอบอีกครั้ง', 404, 'STUDENT_NOT_FOUND');
 
   const { data: record } = await supabase
     .from('attendance_records')
@@ -44,9 +44,9 @@ export async function POST(request: Request) {
     .eq('student_id', student.id)
     .maybeSingle();
 
-  if (!record) return jsonError('กรุณา Check-in ก่อน', 400);
-  if (record.check_out_time) return jsonError('คุณได้ Check-out ไปแล้ว', 409);
-  if (!record.check_in_time) return jsonError('กรุณา Check-in ก่อน', 400);
+  if (!record) return jsonError('กรุณา Check-in ก่อน', 400, 'CHECKIN_REQUIRED');
+  if (record.check_out_time) return jsonError('คุณได้ Check-out ไปแล้ว', 409, 'ALREADY_CHECKED_OUT');
+  if (!record.check_in_time) return jsonError('กรุณา Check-in ก่อน', 400, 'CHECKIN_REQUIRED');
 
   const now = new Date();
   const checkInTime = new Date(record.check_in_time);
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     .select('*')
     .single();
 
-  if (error || !updated) return jsonError('บันทึกการเช็คออกไม่สำเร็จ กรุณาลองใหม่', 500);
+  if (error || !updated) return jsonError('บันทึกการเช็คออกไม่สำเร็จ กรุณาลองใหม่', 500, 'CHECKOUT_FAILED');
 
   return NextResponse.json({
     ok: true,

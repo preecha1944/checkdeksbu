@@ -6,9 +6,10 @@ const WRITE_METHODS = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
 
 /**
  * สร้าง NextResponse แบบ error รูปแบบเดียวกันทุก API route
+ * code (ออปชัน) = รหัส error ที่เสถียร ให้ฝั่ง client แปลข้อความตามภาษาได้ (ใช้ในหน้า /scan)
  */
-export function jsonError(message: string, status = 400) {
-  return NextResponse.json({ error: message }, { status });
+export function jsonError(message: string, status = 400, code?: string) {
+  return NextResponse.json(code ? { error: message, code } : { error: message }, { status });
 }
 
 export interface AuthContext {

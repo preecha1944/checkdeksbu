@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Label } from '@/components/ui/Label';
+import { Select } from '@/components/ui/Select';
 
 export interface BulkPasteModalProps {
   open: boolean;
   onClose: () => void;
+  sections: string[];
 }
 
 interface BulkResult {
@@ -17,12 +19,17 @@ interface BulkResult {
   errors: string[];
 }
 
-export function BulkPasteModal({ open, onClose }: BulkPasteModalProps) {
+export function BulkPasteModal({ open, onClose, sections }: BulkPasteModalProps) {
   const router = useRouter();
   const [text, setText] = useState('');
+  const [section, setSection] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<BulkResult | null>(null);
+
+  useEffect(() => {
+    if (open) setSection((current) => current || sections[0] || '');
+  }, [open, sections]);
 
   function handleClose() {
     setText('');
@@ -38,13 +45,15 @@ export function BulkPasteModal({ open, onClose }: BulkPasteModalProps) {
     const res = await fetch('/api/students/bulk', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, section }),
     });
     const data = await res.json().catch(() => ({}));
     setLoading(false);
 
     if (!res.ok) {
-      setError(data?.error ?? 'นำเข้าไม่สำเร็จ');
+      // 400 จากการตรวจบรรทัดจะส่ง errors มาด้วย และยังไม่ได้เขียนลง DB เลยสักแถว
+      const lines: string[] = Array.isArray(data?.errors) ? data.errors : [];
+      setError([data?.error ?? 'นำเข้าไม่สำเร็จ', ...lines].join('\n'));
       return;
     }
 
@@ -56,9 +65,20 @@ export function BulkPasteModal({ open, onClose }: BulkPasteModalProps) {
     <Modal open={open} onClose={handleClose} title="วางรายชื่อนักศึกษา">
       <div className="flex flex-col gap-4">
         <div>
+          <Label htmlFor="bulkSection">Section ของรายชื่อชุดนี้</Label>
+          <Select id="bulkSection" value={section} onChange={(e) => setSection(e.target.value)}>
+            {sections.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div>
           <Label htmlFor="bulkText">วางข้อมูลจาก Excel</Label>
           <p className="mb-2 text-xs text-ink-muted">
-            คอลัมน์: รหัส [Tab] ชื่อ-สกุล [Tab] Section [Tab] เบอร์โทร [Tab] อีเมล — ถ้าไม่มี Section จะใช้ Section 6
+            คอลัมน์: รหัส [Tab] ชื่อ-สกุล [Tab] Section [Tab] เบอร์โทร [Tab] อีเมล — ถ้าไม่ใส่คอลัมน์ Section จะใช้ Section ที่เลือกไว้ด้านบน
           </p>
           <textarea
             id="bulkText"
@@ -71,7 +91,7 @@ export function BulkPasteModal({ open, onClose }: BulkPasteModalProps) {
         </div>
 
         {error && (
-          <div className="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
+          <div className="whitespace-pre-line rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
             {error}
           </div>
         )}

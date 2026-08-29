@@ -7,22 +7,22 @@ import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
-import { DEFAULT_STUDENT_CLASS_LEVEL, STUDENT_CLASS_LEVELS, normalizeStudentClassLevel } from '@/lib/student-input';
 import type { Student } from '@/types/db';
 
 export interface StudentFormModalProps {
   open: boolean;
   onClose: () => void;
   student?: Student | null;
+  sections: string[];
 }
 
-export function StudentFormModal({ open, onClose, student }: StudentFormModalProps) {
+export function StudentFormModal({ open, onClose, student, sections }: StudentFormModalProps) {
   const router = useRouter();
   const isEdit = !!student;
 
   const [studentCode, setStudentCode] = useState('');
   const [fullName, setFullName] = useState('');
-  const [classLevel, setClassLevel] = useState<string>(DEFAULT_STUDENT_CLASS_LEVEL);
+  const [classLevel, setClassLevel] = useState<string>('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
@@ -33,13 +33,13 @@ export function StudentFormModal({ open, onClose, student }: StudentFormModalPro
     if (open) {
       setStudentCode(student?.student_code ?? '');
       setFullName(student?.full_name ?? '');
-      setClassLevel(normalizeStudentClassLevel(student?.class_level));
+      setClassLevel(student?.class_level ?? sections[0] ?? '');
       setPhone(student?.phone ?? '');
       setEmail(student?.email ?? '');
       setStatus(student?.status ?? 'active');
       setError(null);
     }
-  }, [open, student]);
+  }, [open, student, sections]);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -97,15 +97,10 @@ export function StudentFormModal({ open, onClose, student }: StudentFormModalPro
         </Field>
 
         <Field label="Section" htmlFor="class_level" required>
-          <Select
-            id="class_level"
-            required
-            value={classLevel}
-            onChange={(e) => setClassLevel(e.target.value as (typeof STUDENT_CLASS_LEVELS)[number])}
-          >
-            {STUDENT_CLASS_LEVELS.map((level) => (
-              <option key={level} value={level}>
-                {level}
+          <Select id="class_level" required value={classLevel} onChange={(e) => setClassLevel(e.target.value)}>
+            {sections.map((name) => (
+              <option key={name} value={name}>
+                {name}
               </option>
             ))}
           </Select>

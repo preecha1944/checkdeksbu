@@ -10,6 +10,7 @@ import { LockGradeActions } from '@/components/scores/LockGradeActions';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getSessionUser } from '@/lib/supabase/auth';
 import { buildGradeSummary } from '@/lib/grades';
+import { listSections } from '@/lib/sections';
 import type { Course, FinalGrade, GradeScale, ScoreCategory, ScoreComponent, Student, StudentScore, UserRole } from '@/types/db';
 
 export default async function CourseGradesPage({ params }: { params: Promise<{ id: string }> }) {
@@ -56,6 +57,8 @@ export default async function CourseGradesPage({ params }: { params: Promise<{ i
 
   const finalGrades = (finalRaw ?? []) as unknown as FinalGrade[];
   const meta = new Map(finalGrades.map((row) => [row.student_id, { special_status: row.special_status, remark: row.remark }]));
+  const sectionNames = (await listSections()).map((s) => s.name);
+
   const rows = buildGradeSummary({
     students: (studentsRaw ?? []) as unknown as Student[],
     categories: (categoriesRaw ?? []) as unknown as ScoreCategory[],
@@ -81,7 +84,7 @@ export default async function CourseGradesPage({ params }: { params: Promise<{ i
       />
       <CoursePageNav courseId={id} />
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <GradeSummaryTable course={course} rows={rows} scales={(scalesRaw ?? []) as unknown as GradeScale[]} />
+        <GradeSummaryTable course={course} rows={rows} scales={(scalesRaw ?? []) as unknown as GradeScale[]} sections={sectionNames} />
         <div className="flex flex-col gap-4">
           <GradeScaleEditor course={course} scales={(scalesRaw ?? []) as unknown as GradeScale[]} />
           <LockGradeActions course={course} role={(sessionUser?.profile?.role ?? 'teacher') as UserRole} />

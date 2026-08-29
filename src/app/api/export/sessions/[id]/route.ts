@@ -3,7 +3,6 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { jsonError, requireAuth } from '@/lib/api-helpers';
 import { createWorkbook, autosizeColumns, styleHeader, todayStamp, workbookResponse } from '@/lib/excel';
 import { attendanceStatusLabel } from '@/lib/status';
-import { DEFAULT_STUDENT_CLASS_LEVEL } from '@/lib/student-input';
 import { formatThaiDateOnly, formatTime } from '@/lib/time';
 import type { AttendanceFinalStatus, AttendanceRecord, ClassSession, Student } from '@/types/db';
 
@@ -62,7 +61,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       index + 1,
       student.student_code,
       student.full_name,
-      student.class_level ?? DEFAULT_STUDENT_CLASS_LEVEL,
+      student.class_level,
       record?.rooms?.name ?? '',
       formatTime(record?.check_in_time),
       formatTime(record?.check_out_time),

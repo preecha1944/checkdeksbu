@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { ScoreEntryTable } from '@/components/scores/ScoreEntryTable';
 import { CoursePageNav } from '@/components/scores/CoursePageNav';
 import { createServiceClient } from '@/lib/supabase/server';
+import { listSections } from '@/lib/sections';
 import type { Course, GradeScale, ScoreCategory, ScoreComponent, Student, StudentScore } from '@/types/db';
 
 export default async function CourseEntryPage({ params }: { params: Promise<{ id: string }> }) {
@@ -18,6 +19,7 @@ export default async function CourseEntryPage({ params }: { params: Promise<{ id
   const { data: componentsRaw } = await supabase.from('score_components').select('*').eq('course_id', id).order('sort_order');
   const { data: scoresRaw } = await supabase.from('student_scores').select('*').eq('course_id', id);
   const { data: scalesRaw } = await supabase.from('grade_scales').select('*').eq('course_id', id).order('min_score', { ascending: false });
+  const sectionNames = (await listSections()).map((s) => s.name);
 
   return (
     <div>
@@ -33,6 +35,7 @@ export default async function CourseEntryPage({ params }: { params: Promise<{ id
         components={(componentsRaw ?? []) as unknown as ScoreComponent[]}
         scores={(scoresRaw ?? []) as unknown as StudentScore[]}
         scales={(scalesRaw ?? []) as unknown as GradeScale[]}
+        sections={sectionNames}
       />
     </div>
   );

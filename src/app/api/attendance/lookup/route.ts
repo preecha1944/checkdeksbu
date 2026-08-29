@@ -72,9 +72,10 @@ export async function POST(request: Request) {
       .filter((r): r is RoomJoin => !!r && r.status === 'active')
       .map((r) => ({ id: r.id, name: r.name }));
 
-    // เลือกห้อง/section อัตโนมัติจาก class_level (section ประจำตัวของนักศึกษา) — ชื่อ room ตรงกับ class_level 1:1
-    // ('Section 6'/'Section 7') นักศึกษาจึงไม่ต้องกดเลือกเอง ลดการกดผิด section
-    // ถ้า section ประจำตัวไม่มีในรอบนี้ → autoRoom = null แล้ว UI จะ fallback ให้เลือกเอง
+    // เลือกห้องอัตโนมัติจาก class_level (section ประจำตัวของนักศึกษา) โดยจับคู่ "ชื่อตรงกันเป๊ะ"
+    // ตั้งแต่ section จัดการเองได้จากหน้า Settings ชื่อทั้งสองฝั่งไม่ได้ตรงกันโดยอัตโนมัติอีกแล้ว
+    // อยากให้เลือกให้อัตโนมัติ ต้องตั้งชื่อ section ให้ตรงกับชื่อห้องที่ใช้ในรอบนั้น
+    // ถ้าไม่ตรง → autoRoom = null แล้ว UI จะ fallback ให้นักศึกษากดเลือกห้องเอง
     const autoRoom = rooms.find((r) => r.name === student.class_level) ?? null;
 
     return NextResponse.json({ student: studentPayload, mode: 'checkin', rooms, autoRoom });

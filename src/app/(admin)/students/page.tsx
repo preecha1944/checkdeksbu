@@ -2,6 +2,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { StudentsTable } from '@/components/students/StudentsTable';
 import { StudentsPageActions } from '@/components/students/StudentsPageActions';
 import { createServiceClient } from '@/lib/supabase/server';
+import { listSections } from '@/lib/sections';
 import { getSessionUser } from '@/lib/supabase/auth';
 import type { Student } from '@/types/db';
 
@@ -15,15 +16,16 @@ export default async function StudentsPage() {
     .select('*')
     .order('student_code', { ascending: true });
   const students = (studentsRaw ?? []) as unknown as Student[];
+  const sectionNames = (await listSections()).map((s) => s.name);
 
   return (
     <div>
       <PageHeader
         title="นักศึกษา"
         description="จัดการรายชื่อนักศึกษาในระบบ"
-        action={!isViewer && <StudentsPageActions />}
+        action={!isViewer && <StudentsPageActions sections={sectionNames} />}
       />
-      <StudentsTable students={students} isViewer={isViewer} />
+      <StudentsTable students={students} isViewer={isViewer} sections={sectionNames} />
     </div>
   );
 }

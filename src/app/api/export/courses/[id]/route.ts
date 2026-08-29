@@ -3,7 +3,6 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { jsonError, requireAuth } from '@/lib/api-helpers';
 import { createWorkbook, autosizeColumns, styleHeader, todayStamp, workbookResponse } from '@/lib/excel';
 import { buildGradeStats, buildGradeSummary, componentsByKind, orderComponents } from '@/lib/grades';
-import { DEFAULT_STUDENT_CLASS_LEVEL } from '@/lib/student-input';
 import type { Course, FinalGrade, GradeScale, ScoreCategory, ScoreComponent, Student, StudentScore } from '@/types/db';
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -78,7 +77,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       index + 1,
       row.student.student_code,
       row.student.full_name,
-      row.student.class_level ?? DEFAULT_STUDENT_CLASS_LEVEL,
+      row.student.class_level,
       ...ordered.map((component) => scoreMap.get(`${row.student.id}:${component.id}`) ?? ''),
       row.coursework,
       row.attendance,

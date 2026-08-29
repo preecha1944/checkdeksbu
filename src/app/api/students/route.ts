@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { jsonError, requireAuth } from '@/lib/api-helpers';
-import { normalizeOptionalStudentField, normalizeStudentClassLevel } from '@/lib/student-input';
+import { normalizeOptionalStudentField } from '@/lib/student-input';
+import { listSections, matchSectionName } from '@/lib/sections';
 
 // POST /api/students — เพิ่มนักศึกษา 1 คน (§8.2)
 export async function POST(request: Request) {
@@ -17,13 +18,18 @@ export async function POST(request: Request) {
 
   const studentCode = typeof body.student_code === 'string' ? body.student_code.trim() : '';
   const fullName = typeof body.full_name === 'string' ? body.full_name.trim() : '';
-  const classLevel = normalizeStudentClassLevel(body.class_level);
   const phone = normalizeOptionalStudentField(body.phone);
   const email = normalizeOptionalStudentField(body.email);
   const status = body.status === 'inactive' ? 'inactive' : 'active';
 
   if (!studentCode) return jsonError('กรุณากรอกรหัสนักศึกษา');
   if (!fullName) return jsonError('กรุณากรอกชื่อ-สกุล');
+
+  const sections = await listSections();
+  if (sections.length === 0) return jsonError('ยังไม่มี Section ในระบบ กรุณาเพิ่ม Section ที่หน้า Settings ก่อน');
+
+  const classLevel = matchSectionName(sections, body.class_level);
+  if (!classLevel) return jsonError('กรุณาเลือก Section ที่มีอยู่ในระบบ');
 
   const supabase = createServiceClient();
   const { data: student, error } = await supabase

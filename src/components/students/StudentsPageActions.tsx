@@ -7,9 +7,21 @@ import { Button } from '@/components/ui/Button';
 import { StudentFormModal } from '@/components/students/StudentFormModal';
 import { BulkPasteModal } from '@/components/students/BulkPasteModal';
 
-export function StudentsPageActions() {
+export function StudentsPageActions({ sections }: { sections: string[] }) {
   const [addOpen, setAddOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
+
+  // class_level เป็น not null — ถ้ายังไม่มี section ทั้งสองปุ่มจะพังที่ฝั่ง server อยู่ดี บอกไว้ก่อนดีกว่า
+  if (sections.length === 0) {
+    return (
+      <div className="flex items-center gap-3">
+        <p className="text-sm text-ink-muted">ยังไม่มี Section — เพิ่มที่หน้า Settings ก่อนจึงจะเพิ่มนักศึกษาได้</p>
+        <Link href="/settings">
+          <Button variant="secondary">ไปที่ Settings</Button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="flex gap-3">
@@ -28,8 +40,8 @@ export function StudentsPageActions() {
         เพิ่มนักศึกษา
       </Button>
 
-      <StudentFormModal open={addOpen} onClose={() => setAddOpen(false)} student={null} />
-      <BulkPasteModal open={bulkOpen} onClose={() => setBulkOpen(false)} />
+      <StudentFormModal open={addOpen} onClose={() => setAddOpen(false)} student={null} sections={sections} />
+      <BulkPasteModal open={bulkOpen} onClose={() => setBulkOpen(false)} sections={sections} />
     </div>
   );
 }

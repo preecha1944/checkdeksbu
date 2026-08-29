@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Activity, CheckCircle2, Clock, Home, LogOut, Plus, UserX, Users } from 'lucide-react';
+import { Activity, CheckCircle2, Clock, LogOut, Plus, UserX, Users } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { StatCard } from '@/components/ui/StatCard';
@@ -113,8 +113,6 @@ export default async function DashboardPage() {
     name,
     value,
   }));
-  const sectionSix = roomCounts.get('Section 6') ?? 0;
-  const sectionSeven = roomCounts.get('Section 7') ?? 0;
 
   const recordsBySession = new Map<string, Pick<AttendanceRecordRow, 'session_id' | 'final_status'>[]>();
   for (const record of closedRecords) {
@@ -170,7 +168,7 @@ export default async function DashboardPage() {
         />
       ) : (
         <>
-          <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-7">
+          <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
             <StatCard icon={Users} label="นักศึกษาทั้งหมด" value={totalStudents} tint="primary" />
             <StatCard
               icon={CheckCircle2}
@@ -182,8 +180,6 @@ export default async function DashboardPage() {
             <StatCard icon={LogOut} label="Check-out" value={checkedOut} tint="info" />
             <StatCard icon={UserX} label="ขาด" value={absent} tint="danger" />
             <StatCard icon={Clock} label="มาสาย" value={late} tint="warning" />
-            <StatCard icon={Home} label="Section 6" value={sectionSix} tint="primary" />
-            <StatCard icon={Home} label="Section 7" value={sectionSeven} tint="primary-light" />
           </div>
 
           <div className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">

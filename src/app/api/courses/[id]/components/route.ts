@@ -42,10 +42,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .eq('category_id', categoryId)
     .order('sort_order', { ascending: true });
   const existing = (existingRaw ?? []) as unknown as ScoreComponent[];
-  const total = existing.reduce((sum, component) => sum + Number(component.max_score), 0) + maxScore;
-  if (total > Number(category.max_score)) {
-    return jsonError(`คะแนนรวมของงานย่อยเกิน ${category.max_score} คะแนน (ปัจจุบัน ${total}/${category.max_score})`);
-  }
+  // อนุญาตให้คะแนนรวมของงานย่อยเกินเพดานหมวดได้ชั่วคราว (เพิ่มงานก่อน แล้วค่อยปรับ/หารคะแนนให้ครบทีหลัง)
+  // การเตือนเมื่อรวมยังไม่เท่าเพดานจะแสดงด้วย Badge สีเหลืองในหน้า Score Setup
 
   const { data, error } = await supabase
     .from('score_components')

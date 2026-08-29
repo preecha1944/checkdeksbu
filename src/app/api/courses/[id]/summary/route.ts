@@ -98,6 +98,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         final_score: row.final,
         total_score: row.total,
         grade: row.grade,
+        grade_point: row.grade_point,
         special_status: specialStatus,
         remark,
         updated_at: new Date().toISOString(),

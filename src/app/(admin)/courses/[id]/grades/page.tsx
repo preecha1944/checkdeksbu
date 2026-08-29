@@ -46,7 +46,7 @@ export default async function CourseGradesPage({ params }: { params: Promise<{ i
     .eq('course_id', id);
   const { data: scalesRaw } = await supabase
     .from('grade_scales')
-    .select('grade, min_score, max_score')
+    .select('grade, min_score, max_score, grade_point, sort_order')
     .eq('course_id', id)
     .order('min_score', { ascending: false });
   const { data: finalRaw } = await supabase
@@ -81,7 +81,7 @@ export default async function CourseGradesPage({ params }: { params: Promise<{ i
       />
       <CoursePageNav courseId={id} />
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <GradeSummaryTable course={course} rows={rows} />
+        <GradeSummaryTable course={course} rows={rows} scales={(scalesRaw ?? []) as unknown as GradeScale[]} />
         <div className="flex flex-col gap-4">
           <GradeScaleEditor course={course} scales={(scalesRaw ?? []) as unknown as GradeScale[]} />
           <LockGradeActions course={course} role={(sessionUser?.profile?.role ?? 'teacher') as UserRole} />

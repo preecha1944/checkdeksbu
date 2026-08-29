@@ -49,6 +49,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     final_score: row.final,
     total_score: row.total,
     grade: row.grade,
+    grade_point: row.grade_point,
     special_status: row.special_status,
     remark: row.remark,
     updated_at: new Date().toISOString(),

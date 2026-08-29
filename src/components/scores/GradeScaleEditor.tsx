@@ -15,10 +15,15 @@ export function GradeScaleEditor({ course, scales }: { course: Course; scales: G
       grade: scale.grade,
       min_score: String(scale.min_score),
       max_score: String(scale.max_score),
+      grade_point: scale.grade_point === null || scale.grade_point === undefined ? '' : String(scale.grade_point),
     }))
   );
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  function updateRow(index: number, patch: Partial<(typeof rows)[number]>) {
+    setRows((current) => current.map((item, i) => (i === index ? { ...item, ...patch } : item)));
+  }
 
   async function save() {
     setLoading(true);
@@ -31,6 +36,7 @@ export function GradeScaleEditor({ course, scales }: { course: Course; scales: G
           grade: row.grade,
           min_score: Number(row.min_score),
           max_score: Number(row.max_score),
+          grade_point: row.grade_point.trim() === '' ? null : Number(row.grade_point),
           sort_order: index + 1,
         })),
       }),
@@ -47,29 +53,42 @@ export function GradeScaleEditor({ course, scales }: { course: Course; scales: G
 
   return (
     <Card>
-      <CardHeader title="Grade Scale" description="กำหนดช่วงคะแนนและเกรด" />
+      <CardHeader title="Grade Scale" description="กำหนดช่วงคะแนน เกรด และค่าคะแนน" />
       {message && <div className="mb-3 rounded-xl bg-primary-soft px-4 py-3 text-sm text-primary-deep">{message}</div>}
+      <div className="mb-2 grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 text-xs font-medium text-ink-muted">
+        <span>เกรด</span>
+        <span>ต่ำสุด</span>
+        <span>สูงสุด</span>
+        <span>ค่าคะแนน</span>
+        <span className="w-9" />
+      </div>
       <div className="flex flex-col gap-2">
         {rows.map((row, index) => (
-          <div key={index} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
-            <Input
-              value={row.grade}
-              disabled={course.is_locked}
-              onChange={(event) => setRows((current) => current.map((item, i) => (i === index ? { ...item, grade: event.target.value } : item)))}
-            />
+          <div key={index} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2">
+            <Input value={row.grade} disabled={course.is_locked} onChange={(event) => updateRow(index, { grade: event.target.value })} />
             <Input
               type="number"
               step="0.01"
               value={row.min_score}
               disabled={course.is_locked}
-              onChange={(event) => setRows((current) => current.map((item, i) => (i === index ? { ...item, min_score: event.target.value } : item)))}
+              onChange={(event) => updateRow(index, { min_score: event.target.value })}
             />
             <Input
               type="number"
               step="0.01"
               value={row.max_score}
               disabled={course.is_locked}
-              onChange={(event) => setRows((current) => current.map((item, i) => (i === index ? { ...item, max_score: event.target.value } : item)))}
+              onChange={(event) => updateRow(index, { max_score: event.target.value })}
+            />
+            <Input
+              type="number"
+              step="0.5"
+              min="0"
+              max="4"
+              placeholder="-"
+              value={row.grade_point}
+              disabled={course.is_locked}
+              onChange={(event) => updateRow(index, { grade_point: event.target.value })}
             />
             <Button
               type="button"
@@ -83,12 +102,13 @@ export function GradeScaleEditor({ course, scales }: { course: Course; scales: G
           </div>
         ))}
       </div>
+      <p className="mt-3 text-xs text-ink-muted">เว้นช่องค่าคะแนนว่างไว้ได้ ถ้าเกรดนั้นไม่คิดค่าคะแนน (เช่น I, W)</p>
       <div className="mt-4 flex flex-wrap justify-end gap-2">
         <Button
           type="button"
           variant="secondary"
           disabled={course.is_locked}
-          onClick={() => setRows((current) => [...current, { grade: '', min_score: '0', max_score: '0' }])}
+          onClick={() => setRows((current) => [...current, { grade: '', min_score: '0', max_score: '0', grade_point: '' }])}
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
           เพิ่มแถว

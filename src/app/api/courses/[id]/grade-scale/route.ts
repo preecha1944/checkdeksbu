@@ -30,6 +30,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       grade: row.grade.trim(),
       min_score: Number(row.min_score),
       max_score: Number(row.max_score),
+      // เว้นว่างได้ = เกรดนั้นไม่คิดค่าคะแนน (เช่น I, W)
+      grade_point:
+        row.grade_point === null || row.grade_point === undefined || Number.isNaN(Number(row.grade_point))
+          ? null
+          : Number(row.grade_point),
       sort_order: row.sort_order ?? index + 1,
     }))
     .sort((a, b) => b.min_score - a.min_score);

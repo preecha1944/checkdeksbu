@@ -178,6 +178,7 @@ create table if not exists grade_scales (
   grade text not null,
   min_score numeric not null,
   max_score numeric not null,
+  grade_point numeric,          -- ค่าคะแนน (A=4, B+=3.5, ...) null = เกรดที่ไม่คิดค่าคะแนน
   sort_order int default 0
 );
 
@@ -192,6 +193,7 @@ create table if not exists final_grades (
   final_score numeric,
   total_score numeric,
   grade text,
+  grade_point numeric,
   special_status text,   -- D,F,W,NC,I,S,U,IP,AC,CE หรือ null
   remark text,
   updated_at timestamptz default now(),

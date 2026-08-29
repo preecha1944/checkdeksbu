@@ -86,12 +86,16 @@ Student create, edit, and bulk import validate the submitted section against
 `student_sections`. An unknown name is **rejected**, never coerced. Bulk import
 reports the offending line number and leaves the whole paste unapplied.
 
-Bulk paste stops guessing which column is the section. Column layout is decided
-by column count alone:
+Bulk paste stops guessing which column is the section. The paste modal carries a
+section selector that applies to the whole batch, and column layout is decided by
+column count alone:
 
-- 4 columns — `code, name, phone, email` (no section; the API rejects the paste
-  when the roster requires one)
-- 5 columns — `code, name, section, phone, email`
+- 4 columns — `code, name, phone, email`; every row takes the selected section
+- 5 columns — `code, name, section, phone, email`; the per-row name wins and must
+  match an existing section
+
+This removes the ambiguity that caused the column shift: column 3 is a section
+only in the 5-column form, never by name-matching.
 
 ## Empty State
 
@@ -109,4 +113,6 @@ user at Settings.
   paste is rejected and names the line.
 - Bulk paste a 5-column roster with a valid section; confirm phone and email
   land in the right columns.
+- Bulk paste a 4-column roster; confirm every row takes the section chosen in the
+  modal.
 - Confirm the four dropdowns list exactly the sections in the table.

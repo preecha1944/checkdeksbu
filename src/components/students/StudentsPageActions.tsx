@@ -29,7 +29,7 @@ export function StudentsPageActions({ sections }: { sections: string[] }) {
       </Button>
 
       <StudentFormModal open={addOpen} onClose={() => setAddOpen(false)} student={null} sections={sections} />
-      <BulkPasteModal open={bulkOpen} onClose={() => setBulkOpen(false)} />
+      <BulkPasteModal open={bulkOpen} onClose={() => setBulkOpen(false)} sections={sections} />
     </div>
   );
 }

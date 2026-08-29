@@ -53,6 +53,13 @@ export interface Student {
   updated_at: string;
 }
 
+export interface StudentSection {
+  id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
+}
+
 export interface Room {
   id: string;
   name: string;

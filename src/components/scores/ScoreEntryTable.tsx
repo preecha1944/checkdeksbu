@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Select } from '@/components/ui/Select';
 import { calculateTotalsForStudent } from '@/lib/grades';
-import { DEFAULT_STUDENT_CLASS_LEVEL, STUDENT_CLASS_LEVELS } from '@/lib/student-input';
 import type { Course, GradeScale, ScoreCategory, ScoreComponent, Student, StudentScore } from '@/types/db';
 
 function keyOf(studentId: string, componentId: string) {
@@ -23,6 +22,7 @@ export function ScoreEntryTable({
   components,
   scores,
   scales,
+  sections,
 }: {
   course: Course;
   students: Student[];
@@ -30,6 +30,7 @@ export function ScoreEntryTable({
   components: ScoreComponent[];
   scores: StudentScore[];
   scales: GradeScale[];
+  sections: string[];
 }) {
   const router = useRouter();
   const [values, setValues] = useState<Record<string, string>>(() => {
@@ -54,7 +55,7 @@ export function ScoreEntryTable({
 
   const filteredStudents = useMemo(
     () =>
-      students.filter((student) => classFilter === 'all' || (student.class_level ?? DEFAULT_STUDENT_CLASS_LEVEL) === classFilter),
+      students.filter((student) => classFilter === 'all' || student.class_level === classFilter),
     [students, classFilter]
   );
 
@@ -163,9 +164,9 @@ export function ScoreEntryTable({
       <div className="mb-4 max-w-48">
         <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
           <option value="all">ทุก Section</option>
-          {STUDENT_CLASS_LEVELS.map((level) => (
-            <option key={level} value={level}>
-              {level}
+          {sections.map((name) => (
+            <option key={name} value={name}>
+              {name}
             </option>
           ))}
         </Select>
@@ -208,7 +209,7 @@ export function ScoreEntryTable({
                     <td className="sticky left-0 z-10 bg-card px-3 py-2 font-medium text-ink">{student.student_code}</td>
                     <td className="sticky left-[96px] z-10 min-w-56 bg-card px-3 py-2 text-ink">{student.full_name}</td>
                     <td className="px-3 py-2">
-                      <Badge tone="primary">{student.class_level ?? DEFAULT_STUDENT_CLASS_LEVEL}</Badge>
+                      <Badge tone="primary">{student.class_level}</Badge>
                     </td>
                     {orderedComponents.map((component) => {
                       const key = keyOf(student.id, component.id);

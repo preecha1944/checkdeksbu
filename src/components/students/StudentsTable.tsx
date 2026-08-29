@@ -13,15 +13,15 @@ import { Table, TableHead, TableBody, TableRow, TableTh, TableTd } from '@/compo
 import { EmptyState } from '@/components/ui/EmptyState';
 import { StudentFormModal } from '@/components/students/StudentFormModal';
 import { STUDENT_STATUS_MAP } from '@/lib/status';
-import { DEFAULT_STUDENT_CLASS_LEVEL, STUDENT_CLASS_LEVELS } from '@/lib/student-input';
 import type { Student } from '@/types/db';
 
 export interface StudentsTableProps {
   students: Student[];
   isViewer: boolean;
+  sections: string[];
 }
 
-export function StudentsTable({ students, isViewer }: StudentsTableProps) {
+export function StudentsTable({ students, isViewer, sections }: StudentsTableProps) {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('all');
@@ -33,7 +33,7 @@ export function StudentsTable({ students, isViewer }: StudentsTableProps) {
     const q = search.trim().toLowerCase();
     return students.filter(
       (s) =>
-        (classFilter === 'all' || (s.class_level ?? DEFAULT_STUDENT_CLASS_LEVEL) === classFilter) &&
+        (classFilter === 'all' || s.class_level === classFilter) &&
         (!q || s.student_code.toLowerCase().includes(q) || s.full_name.toLowerCase().includes(q))
     );
   }, [students, search, classFilter]);
@@ -63,9 +63,9 @@ export function StudentsTable({ students, isViewer }: StudentsTableProps) {
         </div>
         <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
           <option value="all">ทุก Section</option>
-          {STUDENT_CLASS_LEVELS.map((level) => (
-            <option key={level} value={level}>
-              {level}
+          {sections.map((name) => (
+            <option key={name} value={name}>
+              {name}
             </option>
           ))}
         </Select>
@@ -98,7 +98,7 @@ export function StudentsTable({ students, isViewer }: StudentsTableProps) {
                   <TableTd className="font-medium">{s.student_code}</TableTd>
                   <TableTd>{s.full_name}</TableTd>
                   <TableTd>
-                    <Badge tone="primary">{s.class_level ?? DEFAULT_STUDENT_CLASS_LEVEL}</Badge>
+                    <Badge tone="primary">{s.class_level}</Badge>
                   </TableTd>
                   <TableTd>{s.phone || '-'}</TableTd>
                   <TableTd>{s.email || '-'}</TableTd>
@@ -147,6 +147,7 @@ export function StudentsTable({ students, isViewer }: StudentsTableProps) {
         open={editing !== null}
         onClose={() => setEditing(null)}
         student={editing === 'new' ? null : editing}
+        sections={sections}
       />
 
       <Modal open={!!deleting} onClose={() => setDeleting(null)} title="ยืนยันการลบนักศึกษา">

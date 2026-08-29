@@ -9,11 +9,20 @@ import { Table, TableBody, TableHead, TableRow, TableTd, TableTh } from '@/compo
 import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { SPECIAL_STATUSES } from '@/lib/constants';
-import { DEFAULT_STUDENT_CLASS_LEVEL, STUDENT_CLASS_LEVELS } from '@/lib/student-input';
 import { buildGradeStats, type GradeSummaryRow } from '@/lib/grades';
 import type { Course, GradeScale, SpecialStatus } from '@/types/db';
 
-export function GradeSummaryTable({ course, rows, scales }: { course: Course; rows: GradeSummaryRow[]; scales: GradeScale[] }) {
+export function GradeSummaryTable({
+  course,
+  rows,
+  scales,
+  sections,
+}: {
+  course: Course;
+  rows: GradeSummaryRow[];
+  scales: GradeScale[];
+  sections: string[];
+}) {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [classFilter, setClassFilter] = useState('all');
@@ -23,7 +32,7 @@ export function GradeSummaryTable({ course, rows, scales }: { course: Course; ro
 
   const filteredRows = useMemo(
     () =>
-      rows.filter((row) => classFilter === 'all' || (row.student.class_level ?? DEFAULT_STUDENT_CLASS_LEVEL) === classFilter),
+      rows.filter((row) => classFilter === 'all' || row.student.class_level === classFilter),
     [rows, classFilter]
   );
 
@@ -55,9 +64,9 @@ export function GradeSummaryTable({ course, rows, scales }: { course: Course; ro
       <div className="mb-4 max-w-48">
         <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
           <option value="all">ทุก Section</option>
-          {STUDENT_CLASS_LEVELS.map((level) => (
-            <option key={level} value={level}>
-              {level}
+          {sections.map((name) => (
+            <option key={name} value={name}>
+              {name}
             </option>
           ))}
         </Select>
@@ -89,7 +98,7 @@ export function GradeSummaryTable({ course, rows, scales }: { course: Course; ro
                 <TableTd className="font-medium">{row.student.student_code}</TableTd>
                 <TableTd>{row.student.full_name}</TableTd>
                 <TableTd>
-                  <Badge tone="primary">{row.student.class_level ?? DEFAULT_STUDENT_CLASS_LEVEL}</Badge>
+                  <Badge tone="primary">{row.student.class_level}</Badge>
                 </TableTd>
                 <TableTd>{row.coursework}</TableTd>
                 <TableTd>{row.attendance}</TableTd>

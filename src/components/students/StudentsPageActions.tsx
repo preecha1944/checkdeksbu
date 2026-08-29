@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { StudentFormModal } from '@/components/students/StudentFormModal';
 import { BulkPasteModal } from '@/components/students/BulkPasteModal';
 
-export function StudentsPageActions() {
+export function StudentsPageActions({ sections }: { sections: string[] }) {
   const [addOpen, setAddOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
 
@@ -28,7 +28,7 @@ export function StudentsPageActions() {
         เพิ่มนักศึกษา
       </Button>
 
-      <StudentFormModal open={addOpen} onClose={() => setAddOpen(false)} student={null} />
+      <StudentFormModal open={addOpen} onClose={() => setAddOpen(false)} student={null} sections={sections} />
       <BulkPasteModal open={bulkOpen} onClose={() => setBulkOpen(false)} />
     </div>
   );

@@ -12,7 +12,7 @@ interface RoomJoin {
 // POST /api/attendance/lookup — public (validate QR ทุก request) ดู §7.3
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
-  if (!body) return jsonError('ข้อมูลไม่ถูกต้อง');
+  if (!body) return jsonError('ข้อมูลไม่ถูกต้อง', 400, 'BAD_REQUEST');
 
   const { sessionId, token, studentCode } = body as {
     sessionId?: string;
@@ -20,14 +20,14 @@ export async function POST(request: Request) {
     studentCode?: string;
   };
 
-  if (!sessionId || !token) return jsonError('ลิงก์ไม่ถูกต้อง กรุณาสแกน QR ใหม่จากหน้าจอในห้องเรียน');
-  if (!studentCode?.trim()) return jsonError('กรุณากรอกรหัสนักศึกษา');
+  if (!sessionId || !token) return jsonError('ลิงก์ไม่ถูกต้อง กรุณาสแกน QR ใหม่จากหน้าจอในห้องเรียน', 400, 'MISSING_LINK');
+  if (!studentCode?.trim()) return jsonError('กรุณากรอกรหัสนักศึกษา', 400, 'MISSING_STUDENT_CODE');
 
   let session;
   try {
     session = await validateQr(sessionId, token);
   } catch (e) {
-    if (e instanceof QrValidationError) return jsonError(e.message, 400);
+    if (e instanceof QrValidationError) return jsonError(e.message, 400, e.code);
     throw e;
   }
 
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (!student) {
-    return jsonError('ไม่พบรหัสนักศึกษา กรุณาตรวจสอบอีกครั้ง', 404);
+    return jsonError('ไม่พบรหัสนักศึกษา กรุณาตรวจสอบอีกครั้ง', 404, 'STUDENT_NOT_FOUND');
   }
 
   const studentPayload = { code: student.student_code, fullName: student.full_name };
@@ -72,7 +72,12 @@ export async function POST(request: Request) {
       .filter((r): r is RoomJoin => !!r && r.status === 'active')
       .map((r) => ({ id: r.id, name: r.name }));
 
-    return NextResponse.json({ student: studentPayload, mode: 'checkin', rooms });
+    // เลือกห้อง/section อัตโนมัติจาก class_level (section ประจำตัวของนักศึกษา) — ชื่อ room ตรงกับ class_level 1:1
+    // ('Section 6'/'Section 7') นักศึกษาจึงไม่ต้องกดเลือกเอง ลดการกดผิด section
+    // ถ้า section ประจำตัวไม่มีในรอบนี้ → autoRoom = null แล้ว UI จะ fallback ให้เลือกเอง
+    const autoRoom = rooms.find((r) => r.name === student.class_level) ?? null;
+
+    return NextResponse.json({ student: studentPayload, mode: 'checkin', rooms, autoRoom });
   }
 
   const roomInfo = record.rooms;

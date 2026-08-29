@@ -2,16 +2,28 @@
 
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle2, GraduationCap, AlertTriangle, LogIn, LogOut } from 'lucide-react';
+import { GraduationCap, AlertTriangle, LogIn, LogOut } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/cn';
-import { formatThaiDateOnly, formatTimeOfDay, formatTime } from '@/lib/time';
-import { attendanceStatusLabel, attendanceStatusTone } from '@/lib/status';
+import { formatTimeOfDay, formatTime } from '@/lib/time';
+import { attendanceStatusTone } from '@/lib/status';
+import {
+  SCAN_LANGS,
+  SCAN_STRINGS,
+  DEFAULT_SCAN_LANG,
+  normalizeScanLang,
+  scanStatusLabel,
+  scanErrorMessage,
+  formatScanDate,
+  type ScanLang,
+} from '@/lib/scan-i18n';
 import type { AttendanceFinalStatus } from '@/types/db';
+
+const LANG_STORAGE_KEY = 'scan-lang';
 
 interface SessionInfo {
   title: string;
@@ -30,6 +42,7 @@ interface LookupResult {
   student: { code: string; fullName: string };
   mode: 'checkin' | 'checkout' | 'done';
   rooms?: RoomOption[];
+  autoRoom?: RoomOption | null;
   record?: {
     roomName: string | null;
     checkInTime?: string | null;
@@ -48,6 +61,12 @@ interface SuccessInfo {
   durationMinutes?: number;
 }
 
+// error จาก API — เก็บทั้ง code (ให้แปลตามภาษา) และ text (ข้อความสำรองจาก server)
+interface ApiErr {
+  code?: string | null;
+  text?: string | null;
+}
+
 type Phase = 'loading' | 'invalid' | 'entry' | 'result' | 'success';
 
 export function ScanFlow() {
@@ -55,23 +74,53 @@ export function ScanFlow() {
   const sid = searchParams.get('sid');
   const token = searchParams.get('t');
 
+  const [lang, setLang] = useState<ScanLang>(DEFAULT_SCAN_LANG);
+  const t = SCAN_STRINGS[lang];
+
   const [phase, setPhase] = useState<Phase>('loading');
-  const [invalidMessage, setInvalidMessage] = useState('ลิงก์ไม่ถูกต้อง กรุณาสแกน QR จากหน้าจอในห้องเรียน');
+  const [invalidErr, setInvalidErr] = useState<ApiErr>({ code: 'MISSING_LINK' });
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
 
   const [studentCode, setStudentCode] = useState('');
   const [entryLoading, setEntryLoading] = useState(false);
-  const [entryError, setEntryError] = useState<string | null>(null);
+  const [entryError, setEntryError] = useState<ApiErr | null>(null);
 
   const [lookup, setLookup] = useState<LookupResult | null>(null);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<ApiErr | null>(null);
+  const [errorKey, setErrorKey] = useState(0);
 
   const [success, setSuccess] = useState<SuccessInfo | null>(null);
 
+  // phase คือขั้นตอนจริง ส่วน displayPhase คือขั้นที่กำลังแสดงอยู่บนจอ
+  // ตอนเปลี่ยนขั้น เราหน่วง displayPhase ไว้ 200ms ให้การ์ดเดิมเล่น animation ออกจนจบก่อนถูกถอด
+  // (ทำเองแทนการลง framer-motion เพราะต้องการแค่จังหวะเดียวนี้ ไม่คุ้มกับ 34KB บนหน้าที่นักศึกษาโหลดผ่านเน็ตมือถือ)
+  const [displayPhase, setDisplayPhase] = useState<Phase>('loading');
+
+  // ระหว่างที่ยังไม่ตรงกัน = การ์ดเดิมกำลังเล่น animation ออก จึงคิดจากสองค่านี้ได้เลย ไม่ต้องเก็บ state เพิ่ม
+  const paneClass = phase === displayPhase ? 'anim-pane-in' : 'anim-pane-out';
+
+  useEffect(() => {
+    if (phase === displayPhase) return;
+    const timer = setTimeout(() => setDisplayPhase(phase), 200);
+    return () => clearTimeout(timer);
+  }, [phase, displayPhase]);
+
+  // โหลดภาษาที่เคยเลือกไว้ (localStorage) — ทำใน effect เพื่อไม่ให้ hydration ไม่ตรง
+  useEffect(() => {
+    const stored = window.localStorage.getItem(LANG_STORAGE_KEY);
+    if (stored) setLang(normalizeScanLang(stored));
+  }, []);
+
+  function changeLang(next: ScanLang) {
+    setLang(next);
+    window.localStorage.setItem(LANG_STORAGE_KEY, next);
+  }
+
   const loadSessionInfo = useCallback(async () => {
     if (!sid || !token) {
+      setInvalidErr({ code: 'MISSING_LINK' });
       setPhase('invalid');
       return;
     }
@@ -79,7 +128,7 @@ export function ScanFlow() {
     const res = await fetch(`/api/attendance/session-info?sid=${sid}&t=${token}`);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setInvalidMessage(data?.error ?? 'ไม่สามารถโหลดข้อมูลรอบเรียนได้');
+      setInvalidErr({ code: data?.code, text: data?.error });
       setPhase('invalid');
       return;
     }
@@ -118,12 +167,15 @@ export function ScanFlow() {
     setEntryLoading(false);
 
     if (!res.ok) {
-      setEntryError(data?.error ?? 'ไม่พบข้อมูล กรุณาลองใหม่');
+      setEntryError({ code: data?.code, text: data?.error });
+      setErrorKey((n) => n + 1);
       return;
     }
 
-    setLookup(data as LookupResult);
-    setSelectedRoomId(null);
+    const result = data as LookupResult;
+    setLookup(result);
+    // preselect ห้องตาม section ประจำตัว (class_level) — นักศึกษาไม่ต้องกดเลือกเอง
+    setSelectedRoomId(result.autoRoom?.id ?? null);
     setPhase('result');
   }
 
@@ -141,7 +193,8 @@ export function ScanFlow() {
     setActionLoading(false);
 
     if (!res.ok) {
-      setActionError(data?.error ?? 'Check-in ไม่สำเร็จ กรุณาลองใหม่');
+      setActionError({ code: data?.code, text: data?.error });
+      setErrorKey((n) => n + 1);
       return;
     }
 
@@ -169,7 +222,8 @@ export function ScanFlow() {
     setActionLoading(false);
 
     if (!res.ok) {
-      setActionError(data?.error ?? 'Check-out ไม่สำเร็จ กรุณาลองใหม่');
+      setActionError({ code: data?.code, text: data?.error });
+      setErrorKey((n) => n + 1);
       return;
     }
 
@@ -187,6 +241,27 @@ export function ScanFlow() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col gap-4 px-4 py-6">
+      <div className="flex justify-end">
+        <div className="inline-flex rounded-full border border-border-soft bg-white p-1">
+          {SCAN_LANGS.map((option) => (
+            <button
+              key={option.code}
+              type="button"
+              onClick={() => changeLang(option.code)}
+              aria-pressed={lang === option.code}
+              className={cn(
+                'cursor-pointer rounded-full px-3 py-1 text-sm font-medium transition-colors duration-150',
+                lang === option.code
+                  ? 'bg-primary text-white'
+                  : 'text-ink-muted hover:bg-primary-soft'
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="flex flex-col items-center gap-2 rounded-2xl bg-primary p-5 text-center text-white">
         <GraduationCap className="h-8 w-8" aria-hidden="true" />
         {sessionInfo ? (
@@ -194,30 +269,35 @@ export function ScanFlow() {
             <p className="font-[family-name:var(--font-heading)] text-lg font-semibold">{sessionInfo.title}</p>
             {sessionInfo.courseName && <p className="text-sm text-white/80">{sessionInfo.courseName}</p>}
             <p className="text-sm text-white/80">
-              {formatThaiDateOnly(sessionInfo.learningDate)} · {formatTimeOfDay(sessionInfo.startTime)} -{' '}
+              {formatScanDate(sessionInfo.learningDate, lang)} · {formatTimeOfDay(sessionInfo.startTime)} -{' '}
               {formatTimeOfDay(sessionInfo.endTime)}
             </p>
           </>
         ) : (
-          <p className="text-sm text-white/80">สแกน QR เพื่อเข้า/ออกชั่วโมงเรียน</p>
+          <p className="text-sm text-white/80">{t.headerFallback}</p>
         )}
       </div>
 
-      {phase === 'loading' && (
-        <Card className="text-center text-sm text-ink-muted">กำลังโหลดข้อมูล...</Card>
+      {displayPhase === 'loading' && (
+        <div className={paneClass}>
+          <Card className="text-center text-sm text-ink-muted">{t.loading}</Card>
+        </div>
       )}
 
-      {phase === 'invalid' && (
-        <Card className="flex flex-col items-center gap-3 text-center">
-          <AlertTriangle className="h-10 w-10 text-danger" aria-hidden="true" />
-          <p className="text-sm text-ink">{invalidMessage}</p>
-        </Card>
+      {displayPhase === 'invalid' && (
+        <div className={paneClass}>
+          <Card className="flex flex-col items-center gap-3 text-center">
+            <AlertTriangle className="h-10 w-10 text-danger" aria-hidden="true" />
+            <p className="text-sm text-ink">{scanErrorMessage(invalidErr.code, invalidErr.text, lang)}</p>
+          </Card>
+        </div>
       )}
 
-      {phase === 'entry' && (
+      {displayPhase === 'entry' && (
+        <div className={paneClass}>
         <Card>
           <form onSubmit={handleLookup} className="flex flex-col gap-4">
-            <Field label="กรอกรหัสนักศึกษา" htmlFor="studentCode" required hint="เช่น 66123456789">
+            <Field label={t.entryLabel} htmlFor="studentCode" required hint={t.entryHint}>
               <Input
                 id="studentCode"
                 inputMode="numeric"
@@ -230,23 +310,25 @@ export function ScanFlow() {
             </Field>
 
             {entryError && (
-              <div className="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
-                {entryError}
+              <div key={errorKey} className="anim-shake rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
+                {scanErrorMessage(entryError.code, entryError.text, lang)}
               </div>
             )}
 
             <Button type="submit" size="lg" loading={entryLoading} className="w-full">
-              ตรวจสอบข้อมูล
+              {t.entrySubmit}
             </Button>
           </form>
         </Card>
+        </div>
       )}
 
-      {phase === 'result' && lookup && (
+      {displayPhase === 'result' && lookup && (
+        <div className={paneClass}>
         <Card className="flex flex-col gap-4">
           <div className="rounded-xl bg-primary-soft p-4 text-center">
-            <p className="text-xs text-ink-muted">ระบบพบข้อมูลนักศึกษา</p>
-            <p className="mt-1 text-sm text-ink-muted">รหัสนักศึกษา {lookup.student.code}</p>
+            <p className="text-xs text-ink-muted">{t.studentFound}</p>
+            <p className="mt-1 text-sm text-ink-muted">{t.studentIdLabel} {lookup.student.code}</p>
             <p className="font-[family-name:var(--font-heading)] text-lg font-semibold text-ink">
               {lookup.student.fullName}
             </p>
@@ -254,34 +336,46 @@ export function ScanFlow() {
 
           {lookup.mode === 'checkin' && (
             <>
-              <div>
-                <p className="mb-2 text-sm font-medium text-ink">กรุณาเลือกห้องที่เข้าเรียน</p>
-                <div className="grid grid-cols-2 gap-3">
-                  {(lookup.rooms ?? []).map((room) => {
-                    const selected = selectedRoomId === room.id;
-                    return (
-                      <button
-                        key={room.id}
-                        type="button"
-                        onClick={() => setSelectedRoomId(room.id)}
-                        className={cn(
-                          'flex h-14 cursor-pointer items-center justify-center rounded-xl border text-base font-semibold',
-                          'transition-colors duration-150 ease-out',
-                          selected
-                            ? 'border-primary bg-primary text-white'
-                            : 'border-border-soft bg-white text-ink hover:bg-primary-soft'
-                        )}
-                      >
-                        {room.name}
-                      </button>
-                    );
-                  })}
+              {lookup.autoRoom ? (
+                // section ประจำตัว (class_level) — ระบบเลือกให้อัตโนมัติ ไม่ต้องกดเลือกเอง
+                <div className="rounded-xl bg-primary-soft p-4 text-center">
+                  <p className="text-xs text-ink-muted">{t.yourSection}</p>
+                  <p className="mt-1 font-[family-name:var(--font-heading)] text-lg font-semibold text-primary-deep">
+                    {lookup.autoRoom.name}
+                  </p>
                 </div>
-              </div>
+              ) : (
+                // fallback: section ประจำตัวไม่มีในรอบนี้ → ให้เลือกห้องเอง
+                <div>
+                  <p className="mb-2 text-sm font-medium text-ink">{t.chooseRoom}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {(lookup.rooms ?? []).map((room) => {
+                      const selected = selectedRoomId === room.id;
+                      return (
+                        <button
+                          key={room.id}
+                          type="button"
+                          onClick={() => setSelectedRoomId(room.id)}
+                          className={cn(
+                            'flex h-14 cursor-pointer items-center justify-center rounded-xl border text-base font-semibold',
+                            // บนมือถือไม่มี hover สถานะกดจึงเป็น feedback อย่างเดียวที่นักศึกษาได้
+                            'transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.955]',
+                            selected
+                              ? 'border-primary bg-primary text-white'
+                              : 'border-border-soft bg-white text-ink hover:bg-primary-soft'
+                          )}
+                        >
+                          {room.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {actionError && (
-                <div className="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
-                  {actionError}
+                <div key={errorKey} className="anim-shake rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
+                  {scanErrorMessage(actionError.code, actionError.text, lang)}
                 </div>
               )}
 
@@ -293,7 +387,7 @@ export function ScanFlow() {
                 onClick={handleCheckIn}
               >
                 <LogIn className="h-5 w-5" aria-hidden="true" />
-                Check-in
+                {t.checkIn}
               </Button>
 
               <button
@@ -301,7 +395,7 @@ export function ScanFlow() {
                 onClick={resetToEntry}
                 className="cursor-pointer text-center text-sm text-ink-muted underline-offset-2 hover:underline"
               >
-                ไม่ใช่ฉัน? กรอกรหัสใหม่
+                {t.notMe}
               </button>
             </>
           )}
@@ -310,18 +404,18 @@ export function ScanFlow() {
             <>
               <div className="rounded-xl border border-border-soft p-4 text-sm">
                 <div className="flex justify-between py-1">
-                  <span className="text-ink-muted">ห้องเรียน</span>
+                  <span className="text-ink-muted">{t.roomLabel}</span>
                   <span className="font-medium text-ink">{lookup.record?.roomName ?? '-'}</span>
                 </div>
                 <div className="flex justify-between py-1">
-                  <span className="text-ink-muted">เวลา Check-in</span>
+                  <span className="text-ink-muted">{t.checkInTimeLabel}</span>
                   <span className="font-medium text-ink">{formatTime(lookup.record?.checkInTime)}</span>
                 </div>
               </div>
 
               {actionError && (
-                <div className="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
-                  {actionError}
+                <div key={errorKey} className="anim-shake rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
+                  {scanErrorMessage(actionError.code, actionError.text, lang)}
                 </div>
               )}
 
@@ -333,7 +427,7 @@ export function ScanFlow() {
                 onClick={handleCheckOut}
               >
                 <LogOut className="h-5 w-5" aria-hidden="true" />
-                Check-out
+                {t.checkOut}
               </Button>
             </>
           )}
@@ -342,67 +436,86 @@ export function ScanFlow() {
             <div className="flex flex-col gap-3">
               <div className="rounded-xl border border-border-soft p-4 text-sm">
                 <div className="flex justify-between py-1">
-                  <span className="text-ink-muted">ห้องเรียน</span>
+                  <span className="text-ink-muted">{t.roomLabel}</span>
                   <span className="font-medium text-ink">{lookup.record?.roomName ?? '-'}</span>
                 </div>
                 <div className="flex justify-between py-1">
-                  <span className="text-ink-muted">เวลา Check-in</span>
+                  <span className="text-ink-muted">{t.checkInTimeLabel}</span>
                   <span className="font-medium text-ink">{formatTime(lookup.record?.checkInTime)}</span>
                 </div>
                 <div className="flex justify-between py-1">
-                  <span className="text-ink-muted">เวลา Check-out</span>
+                  <span className="text-ink-muted">{t.checkOutTimeLabel}</span>
                   <span className="font-medium text-ink">{formatTime(lookup.record?.checkOutTime)}</span>
                 </div>
                 <div className="flex justify-between py-1">
-                  <span className="text-ink-muted">สถานะ</span>
+                  <span className="text-ink-muted">{t.statusLabel}</span>
                   <Badge tone={attendanceStatusTone(lookup.record?.finalStatus)}>
-                    {attendanceStatusLabel(lookup.record?.finalStatus)}
+                    {scanStatusLabel(lookup.record?.finalStatus, lang)}
                   </Badge>
                 </div>
               </div>
-              <p className="text-center text-sm text-ink-muted">คุณเช็คชื่อรอบเรียนนี้ครบแล้ว</p>
+              <p className="text-center text-sm text-ink-muted">{t.doneMessage}</p>
             </div>
           )}
         </Card>
+        </div>
       )}
 
-      {phase === 'success' && success && (
+      {displayPhase === 'success' && success && (
+        <div className={paneClass}>
         <Card className="flex flex-col items-center gap-3 text-center">
-          <CheckCircle2 className="h-14 w-14 text-success" aria-hidden="true" />
-          <p className="font-[family-name:var(--font-heading)] text-lg font-semibold text-ink">
-            {success.type === 'checkin' ? 'Check-in สำเร็จ' : 'Check-out สำเร็จ'}
+          {/* วาดเส้นถูกจากซ้ายไปขวาเหมือนคนเซ็นชื่อ — สื่อว่า "ระบบบันทึกให้แล้ว" ไม่ใช่แค่ "แสดงผลสำเร็จ" */}
+          <svg viewBox="0 0 52 52" className="anim-ring-pop h-16 w-16" role="img" aria-label={t.checkinSuccess}>
+            <circle cx="26" cy="26" r="23" fill="none" stroke="currentColor" strokeWidth="5" className="text-success opacity-20" />
+            <path
+              d="M15 27 L23 34 L38 19"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="anim-check-draw text-success"
+            />
+          </svg>
+          <p
+            className="anim-fade-up font-[family-name:var(--font-heading)] text-lg font-semibold text-ink"
+            style={{ animationDelay: '300ms' }}
+          >
+            {success.type === 'checkin' ? t.checkinSuccess : t.checkoutSuccess}
           </p>
-          <div className="w-full rounded-xl border border-border-soft p-4 text-left text-sm">
-            <div className="flex justify-between py-1">
-              <span className="text-ink-muted">ชื่อ-สกุล</span>
+          <div className="anim-stagger w-full rounded-xl border border-border-soft p-4 text-left text-sm">
+            <div className="anim-fade-up flex justify-between py-1">
+              <span className="text-ink-muted">{t.nameLabel}</span>
               <span className="font-medium text-ink">{success.studentName}</span>
             </div>
-            <div className="flex justify-between py-1">
-              <span className="text-ink-muted">ห้องเรียน</span>
+            <div className="anim-fade-up flex justify-between py-1">
+              <span className="text-ink-muted">{t.roomLabel}</span>
               <span className="font-medium text-ink">{success.roomName ?? '-'}</span>
             </div>
             {success.type === 'checkin' && (
-              <div className="flex justify-between py-1">
-                <span className="text-ink-muted">เวลา Check-in</span>
+              <div className="anim-fade-up flex justify-between py-1">
+                <span className="text-ink-muted">{t.checkInTimeLabel}</span>
                 <span className="font-medium text-ink">{formatTime(success.checkInTime)}</span>
               </div>
             )}
             {success.type === 'checkout' && (
               <>
-                <div className="flex justify-between py-1">
-                  <span className="text-ink-muted">เวลา Check-out</span>
+                <div className="anim-fade-up flex justify-between py-1">
+                  <span className="text-ink-muted">{t.checkOutTimeLabel}</span>
                   <span className="font-medium text-ink">{formatTime(success.checkOutTime)}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-ink-muted">ระยะเวลาเรียน</span>
-                  <span className="font-medium text-ink">{success.durationMinutes ?? 0} นาที</span>
+                <div className="anim-fade-up flex justify-between py-1">
+                  <span className="text-ink-muted">{t.durationLabel}</span>
+                  <span className="font-medium text-ink">
+                    {success.durationMinutes ?? 0} {t.minutesUnit}
+                  </span>
                 </div>
               </>
             )}
-            <div className="flex justify-between py-1">
-              <span className="text-ink-muted">สถานะ</span>
+            <div className="anim-fade-up flex justify-between py-1">
+              <span className="text-ink-muted">{t.statusLabel}</span>
               <Badge tone={attendanceStatusTone(success.status as AttendanceFinalStatus)}>
-                {attendanceStatusLabel(success.status as AttendanceFinalStatus)}
+                {scanStatusLabel(success.status, lang)}
               </Badge>
             </div>
           </div>
@@ -412,9 +525,10 @@ export function ScanFlow() {
             onClick={resetToEntry}
             className="cursor-pointer text-sm text-primary underline-offset-2 hover:underline"
           >
-            เสร็จสิ้น (ให้คนถัดไปเช็คชื่อ)
+            {t.finish}
           </button>
         </Card>
+        </div>
       )}
     </div>
   );

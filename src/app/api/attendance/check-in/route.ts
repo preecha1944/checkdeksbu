@@ -6,7 +6,7 @@ import { validateQr, QrValidationError, calcCheckIn } from '@/lib/attendance';
 // POST /api/attendance/check-in — public (validate QR ทุก request) ดู §7.3
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
-  if (!body) return jsonError('ข้อมูลไม่ถูกต้อง');
+  if (!body) return jsonError('ข้อมูลไม่ถูกต้อง', 400, 'BAD_REQUEST');
 
   const { sessionId, token, studentCode, roomId } = body as {
     sessionId?: string;
@@ -15,15 +15,15 @@ export async function POST(request: Request) {
     roomId?: string;
   };
 
-  if (!sessionId || !token) return jsonError('ลิงก์ไม่ถูกต้อง กรุณาสแกน QR ใหม่จากหน้าจอในห้องเรียน');
-  if (!studentCode?.trim()) return jsonError('กรุณากรอกรหัสนักศึกษา');
-  if (!roomId) return jsonError('กรุณาเลือกห้องเรียน');
+  if (!sessionId || !token) return jsonError('ลิงก์ไม่ถูกต้อง กรุณาสแกน QR ใหม่จากหน้าจอในห้องเรียน', 400, 'MISSING_LINK');
+  if (!studentCode?.trim()) return jsonError('กรุณากรอกรหัสนักศึกษา', 400, 'MISSING_STUDENT_CODE');
+  if (!roomId) return jsonError('กรุณาเลือกห้องเรียน', 400, 'MISSING_ROOM');
 
   let session;
   try {
     session = await validateQr(sessionId, token);
   } catch (e) {
-    if (e instanceof QrValidationError) return jsonError(e.message, 400);
+    if (e instanceof QrValidationError) return jsonError(e.message, 400, e.code);
     throw e;
   }
 
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     .eq('status', 'active')
     .maybeSingle();
 
-  if (!student) return jsonError('ไม่พบรหัสนักศึกษา กรุณาตรวจสอบอีกครั้ง', 404);
+  if (!student) return jsonError('ไม่พบรหัสนักศึกษา กรุณาตรวจสอบอีกครั้ง', 404, 'STUDENT_NOT_FOUND');
 
   const { data: sessionRoomRaw } = await supabase
     .from('session_rooms')
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     rooms: { id: string; name: string } | null;
   } | null;
 
-  if (!sessionRoom) return jsonError('ห้องเรียนไม่ถูกต้อง', 400);
+  if (!sessionRoom) return jsonError('ห้องเรียนไม่ถูกต้อง', 400, 'INVALID_ROOM');
 
   const roomInfo = sessionRoom.rooms;
   const now = new Date();
@@ -73,9 +73,9 @@ export async function POST(request: Request) {
 
   if (error) {
     if (error.code === '23505') {
-      return jsonError('คุณได้ Check-in ไปแล้ว', 409);
+      return jsonError('คุณได้ Check-in ไปแล้ว', 409, 'ALREADY_CHECKED_IN');
     }
-    return jsonError('บันทึกการเช็คชื่อไม่สำเร็จ กรุณาลองใหม่', 500);
+    return jsonError('บันทึกการเช็คชื่อไม่สำเร็จ กรุณาลองใหม่', 500, 'CHECKIN_FAILED');
   }
 
   return NextResponse.json({

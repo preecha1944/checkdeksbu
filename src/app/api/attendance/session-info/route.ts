@@ -11,14 +11,14 @@ export async function GET(request: Request) {
   const token = url.searchParams.get('t');
 
   if (!sessionId || !token) {
-    return jsonError('ลิงก์ไม่ถูกต้อง กรุณาสแกน QR ใหม่จากหน้าจอในห้องเรียน');
+    return jsonError('ลิงก์ไม่ถูกต้อง กรุณาสแกน QR ใหม่จากหน้าจอในห้องเรียน', 400, 'MISSING_LINK');
   }
 
   let session;
   try {
     session = await validateQr(sessionId, token);
   } catch (e) {
-    if (e instanceof QrValidationError) return jsonError(e.message, 400);
+    if (e instanceof QrValidationError) return jsonError(e.message, 400, e.code);
     throw e;
   }
 

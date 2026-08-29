@@ -46,3 +46,62 @@ body {
   background: #ddd0ff;
   color: var(--color-primary-deep);
 }
+
+/* ==================== Animation ====================
+   กฎเดียวของไฟล์นี้: เคลื่อนได้เฉพาะ transform กับ opacity (และ stroke-dashoffset ของ SVG)
+   ห้าม animate width/height/top/left เพราะบังคับให้เบราว์เซอร์คำนวณ layout ใหม่ทุกเฟรม —
+   หน้าสแกนรันบนมือถือนักศึกษาที่เราคุมสเปกไม่ได้ และหน้าฉาย QR เปิดค้างทั้งคาบบนคอมหน้าห้อง
+
+   ทุกคลาสใช้ animation-fill-mode: both เพื่อให้สถานะก่อนเริ่ม/หลังจบมาจาก keyframe เอง
+   เวลาปิด animation (prefers-reduced-motion) องค์ประกอบจึงกลับไปเป็นสถานะปกติ ไม่ค้างล่องหน */
+
+@keyframes pane-in { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+@keyframes pane-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(-14px); } }
+@keyframes fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes ring-pop { from { opacity: 0; transform: scale(0.72); } to { opacity: 1; transform: scale(1); } }
+@keyframes stroke-draw { from { stroke-dashoffset: 48; } to { stroke-dashoffset: 0; } }
+@keyframes shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-5px); }
+  40%, 60% { transform: translateX(5px); }
+  0%, 100% { transform: none; }
+}
+@keyframes qr-swap {
+  0% { opacity: 1; transform: scale(1); }
+  45% { opacity: 0; transform: scale(0.94); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.018); } }
+@keyframes stat-flash { from { background-color: var(--color-success-soft); } to { background-color: var(--color-primary-soft); } }
+
+.anim-pane-in { animation: pane-in 260ms cubic-bezier(0.32, 0.72, 0, 1) both; }
+.anim-pane-out { animation: pane-out 200ms cubic-bezier(0.32, 0.72, 0, 1) both; }
+.anim-fade-up { animation: fade-up 300ms cubic-bezier(0.32, 0.72, 0, 1) both; }
+.anim-ring-pop { animation: ring-pop 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.anim-check-draw { stroke-dasharray: 48; animation: stroke-draw 420ms cubic-bezier(0.65, 0, 0.35, 1) 140ms both; }
+.anim-shake { animation: shake 300ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+.anim-qr-swap { animation: qr-swap 300ms cubic-bezier(0.32, 0.72, 0, 1) both; }
+.anim-breathe { animation: breathe 1.6s ease-in-out infinite; }
+.anim-stat-flash { animation: stat-flash 900ms cubic-bezier(0.32, 0.72, 0, 1) both; }
+
+/* ไล่รายละเอียดเข้าทีละบรรทัด ห่างกัน 45ms — ไม่เกิน 5 บรรทัด ไม่งั้นจะรู้สึกช้า */
+.anim-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.anim-stagger > *:nth-child(2) { animation-delay: 45ms; }
+.anim-stagger > *:nth-child(3) { animation-delay: 90ms; }
+.anim-stagger > *:nth-child(4) { animation-delay: 135ms; }
+.anim-stagger > *:nth-child(5) { animation-delay: 180ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-pane-in,
+  .anim-pane-out,
+  .anim-fade-up,
+  .anim-ring-pop,
+  .anim-check-draw,
+  .anim-shake,
+  .anim-qr-swap,
+  .anim-breathe,
+  .anim-stat-flash {
+    animation: none;
+  }
+}

@@ -50,5 +50,8 @@ export async function POST(request: Request) {
     return jsonError('เพิ่ม Section ไม่สำเร็จ กรุณาลองใหม่', 500);
   }
 
-  return NextResponse.json({ section }, { status: 201 });
+  // ฟังก์ชันคืน composite type — PostgREST ส่งกลับเป็น object เดี่ยว แต่กันไว้เผื่อได้ array มา
+  const created = Array.isArray(section) ? section[0] : section;
+
+  return NextResponse.json({ section: created }, { status: 201 });
 }

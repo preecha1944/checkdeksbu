@@ -90,7 +90,7 @@ export function SessionForm({ open, onClose, courses, rooms }: SessionFormProps)
       return;
     }
     if (roomIds.length === 0) {
-      setError('กรุณาเลือกห้องเรียนอย่างน้อย 1 ห้อง');
+      setError('กรุณาเลือก Section อย่างน้อย 1 อัน');
       return;
     }
 

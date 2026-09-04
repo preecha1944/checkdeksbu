@@ -6,7 +6,6 @@ import { validateQr, QrValidationError } from '@/lib/attendance';
 interface RoomJoin {
   id: string;
   name: string;
-  status: string;
 }
 
 // POST /api/attendance/lookup — public (validate QR ทุก request) ดู §7.3
@@ -63,19 +62,21 @@ export async function POST(request: Request) {
   if (!record) {
     const { data: sessionRoomsRaw } = await supabase
       .from('session_rooms')
-      .select('room_id, rooms(id, name, status)')
+      .select('room_id, rooms(id, name)')
       .eq('session_id', session.id);
     const sessionRooms = sessionRoomsRaw as unknown as { room_id: string; rooms: RoomJoin | null }[] | null;
 
+    // ไม่กรอง status ที่นี่ — ห้องถูกจำกัดด้วย session_rooms ของรอบนั้นอยู่แล้ว ส่วน status ใช้คุมว่า
+    // ห้องไหน "เลือกได้ตอนสร้างรอบใหม่" เท่านั้น ถ้ากรองซ้ำ รอบที่สร้างไว้ก่อนแล้วผูกกับห้องที่ถูกปิด
+    // (เช่นตอนลบ section) จะเช็คชื่อไม่ได้เลยเพราะไม่เหลือห้องให้เลือก
     const rooms = (sessionRooms ?? [])
       .map((sr) => sr.rooms)
-      .filter((r): r is RoomJoin => !!r && r.status === 'active')
+      .filter((r): r is RoomJoin => !!r)
       .map((r) => ({ id: r.id, name: r.name }));
 
     // เลือกห้องอัตโนมัติจาก class_level (section ประจำตัวของนักศึกษา) โดยจับคู่ "ชื่อตรงกันเป๊ะ"
-    // ตั้งแต่ section จัดการเองได้จากหน้า Settings ชื่อทั้งสองฝั่งไม่ได้ตรงกันโดยอัตโนมัติอีกแล้ว
-    // อยากให้เลือกให้อัตโนมัติ ต้องตั้งชื่อ section ให้ตรงกับชื่อห้องที่ใช้ในรอบนั้น
-    // ถ้าไม่ตรง → autoRoom = null แล้ว UI จะ fallback ให้นักศึกษากดเลือกห้องเอง
+    // ชื่อใน rooms ถูก sync กับ student_sections ทุกครั้งที่แก้ section จึงตรงกันเสมอ
+    // ยกเว้นห้องเก่าที่ค้างจากก่อน sync → autoRoom = null แล้ว UI จะ fallback ให้กดเลือกห้องเอง
     const autoRoom = rooms.find((r) => r.name === student.class_level) ?? null;
 
     return NextResponse.json({ student: studentPayload, mode: 'checkin', rooms, autoRoom });

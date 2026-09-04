@@ -27,6 +27,13 @@ Section membership stays `students.class_level`. The `rooms` table (rows named
 `Section 6` / `Section 7`, used by `session_rooms` and attendance `room_id`) is
 a separate physical-room concept and is not touched.
 
+> **Superseded 2026-09-04.** Leaving `rooms` alone turned out to be wrong: the
+> create-session form lists rooms, and check-in auto-picks a room by matching
+> `rooms.name = students.class_level`, so a section with no matching room is
+> invisible when creating a session and unmatched at check-in. `rooms` now
+> mirrors `student_sections` — see
+> `supabase/migrations/20260904103000_sync_rooms_with_sections.sql`.
+
 ## Data Model
 
 New table holding the list of valid section names:

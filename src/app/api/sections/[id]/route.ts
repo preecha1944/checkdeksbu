@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { jsonError, requireAuth } from '@/lib/api-helpers';
 
-// PATCH /api/sections/[id] — เปลี่ยนชื่อ section แล้วให้ students.class_level ตามไปด้วย
-// เรียกผ่าน RPC เพราะสองคำสั่งนี้ต้องอยู่ใน transaction เดียว
+// PATCH /api/sections/[id] — เปลี่ยนชื่อ section แล้วให้ students.class_level กับ rooms.name ตามไปด้วย
+// เรียกผ่าน RPC เพราะสามคำสั่งนี้ต้องอยู่ใน transaction เดียว
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireAuth(request);
@@ -58,7 +58,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     return jsonError(`มีนักศึกษา ${count} คนอยู่ใน Section นี้ ย้ายออกก่อนจึงจะลบได้`, 409);
   }
 
-  const { error } = await supabase.from('student_sections').delete().eq('id', id);
+  // ผ่าน RPC เพราะต้องเก็บกวาดห้องชื่อเดียวกันใน rooms ไปด้วย (ลบทิ้งถ้าไม่เคยใช้ ไม่งั้นปิดการใช้งาน)
+  const { error } = await supabase.rpc('delete_student_section', { p_id: id });
   if (error) return jsonError('ลบ Section ไม่สำเร็จ กรุณาลองใหม่', 500);
 
   return NextResponse.json({ ok: true });

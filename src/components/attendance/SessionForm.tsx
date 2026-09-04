@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Modal } from '@/components/ui/Modal';
 import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
@@ -15,6 +16,7 @@ export interface SessionFormCourse {
   course_name: string;
 }
 
+// หนึ่งแถวใน rooms = หนึ่ง Section ของนักศึกษา (ชื่อถูก sync กับ student_sections ฝั่ง DB)
 export interface SessionFormRoom {
   id: string;
   name: string;
@@ -125,12 +127,19 @@ export function SessionForm({ open, onClose, courses, rooms }: SessionFormProps)
 
   return (
     <Modal open={open} onClose={onClose} title="สร้างรอบเรียนใหม่">
-      {courses.length === 0 ? (
+      {courses.length === 0 || rooms.length === 0 ? (
         <div className="flex flex-col gap-4">
           <p className="text-sm text-ink-muted">
-            ยังไม่มีรายวิชาในระบบ กรุณาสร้างรายวิชาก่อนจึงจะสร้างรอบเรียนได้
+            {courses.length === 0
+              ? 'ยังไม่มีรายวิชาในระบบ กรุณาสร้างรายวิชาก่อนจึงจะสร้างรอบเรียนได้'
+              : 'ยังไม่มี Section ในระบบ เพิ่ม Section ที่หน้า Settings ก่อนจึงจะสร้างรอบเรียนได้'}
           </p>
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-3">
+            {rooms.length === 0 && courses.length > 0 && (
+              <Link href="/settings">
+                <Button type="button">ไปที่ Settings</Button>
+              </Link>
+            )}
             <Button type="button" variant="secondary" onClick={onClose}>
               ปิด
             </Button>
@@ -218,7 +227,7 @@ export function SessionForm({ open, onClose, courses, rooms }: SessionFormProps)
           </div>
 
           <div>
-            <Label required>ห้องเรียนที่เปิดให้เลือก</Label>
+            <Label required>Section ที่เปิดให้เลือก</Label>
             <div className="grid grid-cols-2 gap-2">
               {rooms.map((room) => {
                 const checked = roomIds.includes(room.id);

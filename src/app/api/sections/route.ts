@@ -41,23 +41,12 @@ export async function POST(request: Request) {
   const name = typeof body?.name === 'string' ? body.name.trim() : '';
   if (!name) return jsonError('กรุณากรอกชื่อ Section');
 
+  // ผ่าน RPC เพราะต้องสร้างห้องใน rooms ชื่อเดียวกันไปพร้อมกัน (ฟอร์มสร้างรอบเรียนอ่านจาก rooms)
   const supabase = createServiceClient();
-  const { data: last } = await supabase
-    .from('student_sections')
-    .select('sort_order')
-    .order('sort_order', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const sortOrder = ((last as { sort_order: number } | null)?.sort_order ?? 0) + 1;
-
-  const { data: section, error } = await supabase
-    .from('student_sections')
-    .insert([{ name, sort_order: sortOrder }])
-    .select('*')
-    .single();
+  const { data: section, error } = await supabase.rpc('create_student_section', { p_name: name });
 
   if (error) {
-    if (error.code === '23505') return jsonError(`มี Section ชื่อ "${name}" อยู่แล้ว`, 409);
+    if (error.message.includes('duplicate_section')) return jsonError(`มี Section ชื่อ "${name}" อยู่แล้ว`, 409);
     return jsonError('เพิ่ม Section ไม่สำเร็จ กรุณาลองใหม่', 500);
   }
 

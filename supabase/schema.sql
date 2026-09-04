@@ -46,7 +46,7 @@ create index if not exists idx_students_class_level on students(class_level);
 
 -- ========== STUDENT SECTIONS ==========
 -- รายการ Section ของนักศึกษา (จัดการได้จากหน้า Settings) — students.class_level เก็บ "ชื่อ" จากตารางนี้
--- ระวัง: ตาราง rooms ด้านล่างที่มีแถวชื่อ 'Section 6'/'Section 7' คือห้องเรียนสำหรับเช็คชื่อ คนละเรื่องกัน
+-- ตาราง rooms ด้านล่าง (ห้องเรียนที่ใช้เช็คชื่อ) ถือชื่อชุดเดียวกันเสมอ ดูฟังก์ชัน sync ท้ายไฟล์
 create table if not exists student_sections (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -55,33 +55,6 @@ create table if not exists student_sections (
 );
 create unique index if not exists idx_student_sections_name_lower on student_sections (lower(name));
 create index if not exists idx_student_sections_sort on student_sections(sort_order, name);
-
--- เปลี่ยนชื่อ section + ไล่อัปเดต students.class_level ให้อยู่ใน transaction เดียว
--- (supabase-js ยิงทีละ statement จึงต้องยกมาไว้ฝั่ง DB ไม่งั้นพังกลางทางแล้วข้อมูลค้างครึ่ง ๆ)
-create or replace function rename_student_section(p_id uuid, p_name text)
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_old_name text;
-begin
-  select name into v_old_name from student_sections where id = p_id for update;
-  if v_old_name is null then
-    raise exception 'section_not_found';
-  end if;
-
-  if exists (
-    select 1 from student_sections where lower(name) = lower(p_name) and id <> p_id
-  ) then
-    raise exception 'duplicate_section';
-  end if;
-
-  update student_sections set name = p_name where id = p_id;
-  update students set class_level = p_name, updated_at = now() where class_level = v_old_name;
-end;
-$$;
 
 -- ========== ROOMS ==========
 create table if not exists rooms (
@@ -239,11 +212,99 @@ create table if not exists final_grades (
   unique(course_id, student_id)
 );
 
--- ========== SEED ==========
-insert into rooms (name, capacity)
-select 'Section 6', 40 where not exists (select 1 from rooms where name = 'Section 6');
-insert into rooms (name, capacity)
-select 'Section 7', 40 where not exists (select 1 from rooms where name = 'Section 7');
+-- ========== SECTION <-> ROOM SYNC ==========
+-- rooms ถือชื่อชุดเดียวกับ student_sections เสมอ ทุกการแก้ไข section จึงต้องผ่านสามฟังก์ชันนี้
+-- ไม่ใช่ insert/update ตรง ๆ เพราะฟอร์มสร้างรอบเรียนอ่านรายชื่อห้องจาก rooms และ autoRoom ตอน
+-- check-in จับคู่ rooms.name = students.class_level ถ้าสองตารางหลุดจากกันเมื่อไร ทั้งสองอย่างพัง
+--
+-- ทั้งสามฟังก์ชันอยู่ท้ายไฟล์เพราะอ้างถึง rooms/session_rooms/attendance_records ที่ประกาศด้านบน
+-- หมายเหตุ: rooms ไม่มี unique index บน name (ต่างจาก student_sections) การ match ด้วย lower(name)
+-- จึงอาจโดนหลายแถวถ้ามีชื่อซ้ำ — ชื่อห้องมาจากฟังก์ชันพวกนี้อย่างเดียวจึงไม่เกิดในทางปฏิบัติ
+
+-- ========== เพิ่ม section: สร้างห้องคู่กันใน transaction เดียว ==========
+create or replace function create_student_section(p_name text)
+returns student_sections
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_section student_sections;
+  v_sort int;
+begin
+  if exists (select 1 from student_sections where lower(name) = lower(p_name)) then
+    raise exception 'duplicate_section';
+  end if;
+
+  select coalesce(max(sort_order), 0) + 1 into v_sort from student_sections;
+  insert into student_sections (name, sort_order) values (p_name, v_sort) returning * into v_section;
+
+  -- เคยมีห้องชื่อนี้ (ลบ section ไปแล้วสร้างใหม่) → เปิดใช้ห้องเดิม เพื่อให้ประวัติเช็คชื่อเก่าไม่ขาดตอน
+  if exists (select 1 from rooms where lower(name) = lower(p_name)) then
+    update rooms set name = p_name, status = 'active', updated_at = now()
+    where lower(name) = lower(p_name);
+  else
+    insert into rooms (name) values (p_name);
+  end if;
+
+  return v_section;
+end;
+$$;
+
+-- ========== เปลี่ยนชื่อ section: ให้ห้องเปลี่ยนตามด้วย ==========
+create or replace function rename_student_section(p_id uuid, p_name text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_old_name text;
+begin
+  select name into v_old_name from student_sections where id = p_id for update;
+  if v_old_name is null then
+    raise exception 'section_not_found';
+  end if;
+
+  if exists (
+    select 1 from student_sections where lower(name) = lower(p_name) and id <> p_id
+  ) then
+    raise exception 'duplicate_section';
+  end if;
+
+  update student_sections set name = p_name where id = p_id;
+  update students set class_level = p_name, updated_at = now() where class_level = v_old_name;
+  update rooms set name = p_name, updated_at = now() where lower(name) = lower(v_old_name);
+end;
+$$;
+
+-- ========== ลบ section: เก็บกวาดห้องคู่กัน ==========
+-- (การเช็คว่ายังมีนักศึกษาอยู่ใน section หรือไม่ ทำที่ฝั่ง API route เพราะต้องเอาจำนวนไปขึ้นข้อความ)
+create or replace function delete_student_section(p_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_name text;
+begin
+  select name into v_name from student_sections where id = p_id for update;
+  if v_name is null then
+    raise exception 'section_not_found';
+  end if;
+
+  delete from student_sections where id = p_id;
+
+  -- ห้องที่เคยถูกใช้ลบไม่ได้ (session_rooms/attendance_records อ้าง room_id อยู่) → ปิดการใช้งานแทน
+  delete from rooms r
+  where lower(r.name) = lower(v_name)
+    and not exists (select 1 from session_rooms sr where sr.room_id = r.id)
+    and not exists (select 1 from attendance_records ar where ar.room_id = r.id);
+
+  update rooms set status = 'inactive', updated_at = now() where lower(name) = lower(v_name);
+end;
+$$;
 
 -- ========== RLS ==========
 -- เปิด RLS ทุกตาราง แต่ไม่สร้าง policy → client (anon key) อ่าน/เขียนตรงไม่ได้เลย
